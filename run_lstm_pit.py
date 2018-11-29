@@ -5,8 +5,7 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
-from models.lstm_pit_v2 import LSTM
-from dataManager.data import mixed_aishell
+from models.lstm_pit import LSTM
 import utils
 import wave
 import shutil
