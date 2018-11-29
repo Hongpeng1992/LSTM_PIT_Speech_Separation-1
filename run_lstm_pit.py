@@ -10,31 +10,128 @@ import utils
 import wave
 import shutil
 import traceback
-from dataManager.mixed_aishell_tfrecord_io import get_batch, generate_tfrecord
+from dataManager.mixed_aishell_tfrecord_io import get_batch, generate_tfrecord, rmNormalization
+from dataManager import mixed_aishell_tfrecord_io as wav_tool
 from FLAGS import NNET_PARAM
 
 
 os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[1]
 
 
-def decode():
-  pass
-  """Decoding the inputs using current model."""
-  '''
-  # data_dir = '/home/student/work/pit_test/data_small'
-  # data_dir = '/mnt/d/tf_recipe/PIT_SYS/utterance_test/speaker_set'
-  data_dir = '/mnt/d/tf_recipe/ALL_DATA/aishell/mixed_data_small'
-  data_mixed = mixed_aishell.read_data_sets(data_dir)
+def decode_one(sess, model, name, uttwave1, uttwave2=None):
+  if uttwave2 is None:
+    uttwave2 = np.array([0]*np.shape(uttwave2)[0])
+  mixed_wave = wav_tool._mix_wav(uttwave1, uttwave2)
+  x_spec = wav_tool._extract_norm_log_mag_spec(mixed_wave)
+  y_spec1 = wav_tool._extract_norm_log_mag_spec(uttwave1)
+  y_spec2 = wav_tool._extract_norm_log_mag_spec(uttwave2)
 
+  model.inputs = np.reshape(x_spec, [1, -1, np.shape(x_spec)[-1]])
+  cleaned1, cleaned2 = sess.run([model.cleaned1, model.cleaned2])
+  cleanedshape = np.shape(cleaned1)
+  cleaned1 = np.reshape(cleaned1, [cleanedshape[-2], cleanedshape[-1]])
+  cleaned2 = np.reshape(cleaned2, [cleanedshape[-2], cleanedshape[-1]])
+
+  # show the 5 data.(wav,spec,sound etc.)
+  x_spec = np.array(rmNormalization(x_spec))
+  cleaned1 = np.array(rmNormalization(cleaned1))
+  cleaned2 = np.array(rmNormalization(cleaned2))
+  y_spec1 = np.array(rmNormalization(y_spec1))
+  y_spec2 = np.array(rmNormalization(y_spec2))
+
+  decode_ans_dir = os.path.join(NNET_PARAM.save_dir, 'decode_ans')
+  if os.path.exists(decode_ans_dir):
+    shutil.rmtree(decode_ans_dir)
+  os.makedirs(decode_ans_dir)
+
+  # wav_spec(spectrum)
+  cleaned = np.concatenate([cleaned1, cleaned2], axis=-1)
+  y_spec = np.concatenate([y_spec1, y_spec2], axis=-1)
+  utils.spectrum_tool.picture_spec(np.log10(cleaned+0.001),
+                                   decode_ans_dir+'/restore_spec_'+name)
+  utils.spectrum_tool.picture_spec(np.log10(x_spec+0.001),
+                                   decode_ans_dir+'/mixed_spec_'+name)
+  if NNET_PARAM.decode_show_more:
+    utils.spectrum_tool.picture_spec(np.log10(y_spec+0.001),
+                                     decode_ans_dir+'/raw_spec_'+name)
+
+  x_angle = wav_tool._extract_phase(mixed_wave)
+  cleaned_spec1 = cleaned1 * np.exp(x_angle*1j)
+  cleaned_spec2 = cleaned2 * np.exp(x_angle*1j)
+  y_spec1 = y_spec1 * np.exp(x_angle*1j)
+  y_spec2 = y_spec2 * np.exp(x_angle*1j)
+  x_spec = x_spec * np.exp(x_angle*1j)
+
+  # for i in range(speech_num):
+  # write restore wave
+  reY1 = utils.spectrum_tool.librosa_istft(
+      cleaned_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+  reY2 = utils.spectrum_tool.librosa_istft(
+      cleaned_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+  reCONY = np.concatenate([reY1, reY2])
+  wavefile = wave.open(
+      decode_ans_dir+'/restore_audio_'+name+'.wav', 'wb')
+  nchannels = 1
+  sampwidth = 2  # 采样位宽，2表示16位
+  framerate = 16000
+  nframes = len(reCONY)
+  comptype = "NONE"
+  compname = "not compressed"
+  wavefile.setparams((nchannels, sampwidth, framerate, nframes,
+                      comptype, compname))
+  wavefile.writeframes(
+      np.array(reCONY, dtype=np.int16))
+
+  # write raw wave
+  if NNET_PARAM.decode_show_more:
+    rawY1 = utils.spectrum_tool.librosa_istft(
+        y_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+    rawY2 = utils.spectrum_tool.librosa_istft(
+        y_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+    rawCONY = np.concatenate([rawY1, rawY2])
+    wavefile = wave.open(
+        decode_ans_dir+'/raw_audio_'+name+'.wav', 'wb')
+    nframes = len(rawCONY)
+    wavefile.setparams((nchannels, sampwidth, framerate, nframes,
+                        comptype, compname))
+    wavefile.writeframes(
+        np.array(rawCONY, dtype=np.int16))
+
+  # write mixed wave
+  mixedWave = utils.spectrum_tool.librosa_istft(
+      x_spec.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+  wavefile = wave.open(
+      decode_ans_dir+'/mixed_audio_'+name+'.wav', 'wb')
+  nframes = len(mixedWave)
+  wavefile.setparams((nchannels, sampwidth, framerate, nframes,
+                      comptype, compname))
+  wavefile.writeframes(
+      np.array(mixedWave, dtype=np.int16))
+
+  # wav_pic(oscillograph)
+  utils.spectrum_tool.picture_wave(reCONY,
+                                   decode_ans_dir +
+                                   '/restore_wav_'+name,
+                                   16000)
+  if NNET_PARAM.decode_show_more:
+    utils.spectrum_tool.picture_wave(rawCONY,
+                                     decode_ans_dir +
+                                     '/raw_wav_' + name,
+                                     16000)
+
+
+def decode():
   with tf.Graph().as_default():
     with tf.name_scope('model'):
-      model = LSTM(NNET_PARAM, infer=True)
+      model = LSTM(None, None, None, None, infer=True)
 
     init = tf.group(tf.global_variables_initializer(),
                     tf.local_variables_initializer())
 
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.allow_soft_placement = True
     sess = tf.Session()
-
     sess.run(init)
 
     ckpt = tf.train.get_checkpoint_state(NNET_PARAM.save_dir+'/nnet')
@@ -45,116 +142,13 @@ def decode():
       tf.logging.fatal("checkpoint not found.")
       sys.exit(-1)
 
-  speech_num = 10
-
-  # speech_start = 100000  # same gender
-  # speech_start = 100123 # differ gender
-  # speech_start = 202810 # differ gender like norm
-  # dataset=data_mixed.train
-  # X_Y_batch = dataset.X_Y[speech_start:speech_start+speech_num]
-
-  speech_start = 3128  # test_cc
-  dataset = data_mixed.test_cc
-  X_Y_batch = dataset.X_Y[speech_start:speech_start+speech_num]
-
-  angle_batch = np.array(
-      dataset.X_Theta[speech_start:speech_start+speech_num])
-  x_batch = X_Y_batch[0]
-  y_batch = X_Y_batch[1]
-  lengths = np.array([np.shape(x_batch)[1]]*np.shape(x_batch)[0])
-  cleaned1, cleaned2 = sess.run(
-      [model.cleaned1, model.cleaned2],
-      feed_dict={
-          model.inputs: x_batch,
-          model.labels: y_batch,
-          model.lengths: lengths,
-      })
-
-  raw_spec1, raw_spec2 = np.split(y_batch, 2, axis=-1)
-
-  cleaned1 = np.array(mixed_aishell.rmNormalization(cleaned1))
-  cleaned2 = np.array(mixed_aishell.rmNormalization(cleaned2))
-  raw_spec1 = np.array(mixed_aishell.rmNormalization(raw_spec1))
-  raw_spec2 = np.array(mixed_aishell.rmNormalization(raw_spec2))
-  mixed_spec2 = np.array(mixed_aishell.rmNormalization(x_batch))
-
-  decode_ans_dir = os.path.join(NNET_PARAM.save_dir, 'decode_ans')
-  if os.path.exists(decode_ans_dir):
-    shutil.rmtree(decode_ans_dir)
-  os.makedirs(decode_ans_dir)
-
-  if NNET_PARAM.decode_show_spec:
-    cleaned = np.concatenate([cleaned1, cleaned2], axis=-1)
-    raw_spec = np.concatenate([raw_spec1, raw_spec2], axis=-1)
-    utils.spectrum_tool.picture_spec(np.log10(cleaned+0.001),
-                                     decode_ans_dir+'/restore_spec_')
-    utils.spectrum_tool.picture_spec(np.log10(raw_spec+0.001),
-                                     decode_ans_dir+'/raw_spec_')
-
-  spec1 = cleaned1 * np.exp(angle_batch*1j)
-  spec2 = cleaned2 * np.exp(angle_batch*1j)
-  raw_spec1 = raw_spec1 * np.exp(angle_batch*1j)
-  raw_spec2 = raw_spec2 * np.exp(angle_batch*1j)
-  mixed_spec2 = mixed_spec2 * np.exp(angle_batch*1j)
-
-  for i in range(speech_num):
-    # write restore wave
-    reY1 = utils.spectrum_tool.librosa_istft(
-        spec1[i].T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-    reY2 = utils.spectrum_tool.librosa_istft(
-        spec2[i].T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-    reCONY = np.concatenate([reY1, reY2])
-    wavefile = wave.open(
-        decode_ans_dir+('/restore_audio_%03d.wav' % i), 'wb')
-    nchannels = 1
-    sampwidth = 2  # 采样位宽，2表示16位
-    framerate = 16000
-    nframes = len(reCONY)
-    comptype = "NONE"
-    compname = "not compressed"
-    wavefile.setparams((nchannels, sampwidth, framerate, nframes,
-                        comptype, compname))
-    wavefile.writeframes(
-        np.array(reCONY, dtype=np.int16))
-
-    # write raw wave
-    rawY1 = utils.spectrum_tool.librosa_istft(
-        raw_spec1[i].T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-    rawY2 = utils.spectrum_tool.librosa_istft(
-        raw_spec2[i].T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-    rawCONY = np.concatenate([rawY1, rawY2])
-    wavefile = wave.open(
-        decode_ans_dir+('/raw_audio_%03d.wav' % i), 'wb')
-    nframes = len(rawCONY)
-    wavefile.setparams((nchannels, sampwidth, framerate, nframes,
-                        comptype, compname))
-    wavefile.writeframes(
-        np.array(rawCONY, dtype=np.int16))
-
-    # write mixed wave
-    mixedWave = utils.spectrum_tool.librosa_istft(
-        mixed_spec2[i].T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-    wavefile = wave.open(
-        decode_ans_dir+('/mixed_audio_%03d.wav' % i), 'wb')
-    nframes = len(mixedWave)
-    wavefile.setparams((nchannels, sampwidth, framerate, nframes,
-                        comptype, compname))
-    wavefile.writeframes(
-        np.array(mixedWave, dtype=np.int16))
-
-    # wave picture
-    utils.spectrum_tool.picture_wave(reCONY,
-                                     decode_ans_dir +
-                                     ('/restore_wav_%03d' % i),
-                                     16000)
-    utils.spectrum_tool.picture_wave(rawCONY,
-                                     decode_ans_dir +
-                                     ('/raw_wav_%03d' % i),
-                                     16000)
-
-  tf.logging.info("Done decoding.")
+  dataset_index_strlist = []
+  for i, index_str in enumerate(dataset_index_strlist):
+    uttdir1, uttdir2 = index_str.replace('\n', '').split(' ')
+    uttwave1, uttwave2 = wav_tool._get_waveData1_waveData2(uttdir1, uttdir2)
+    decode_one(sess, model, str(i), uttwave1, uttwave2)
   sess.close()
-  '''
+  tf.logging.info("Decoding done.")
 
 
 def train_one_epoch(sess, tr_model):
@@ -164,17 +158,16 @@ def train_one_epoch(sess, tr_model):
   while True:
     try:
       stime = time.time()
-      print('getin')
       _, loss, current_batchsize = sess.run(
           [tr_model.train_op, tr_model.loss, tf.shape(tr_model.lengths)[0]])
       tr_loss += loss
-      # if (i+1) % int(100*256/NNET_PARAM.batch_size) == 0:
-      lr = sess.run(tr_model.lr)
-      costtime = time.time()-stime
-      print("MINIBATCH %d: TRAIN AVG.LOSS %f, "
-            "(learning rate %e)" % (
-                i + 1, tr_loss / (i*NNET_PARAM.batch_size+current_batchsize), lr), 'cost time: %f' % costtime)
-      sys.stdout.flush()
+      if (i+1) % int(100*256/NNET_PARAM.batch_size) == 0:
+        lr = sess.run(tr_model.lr)
+        costtime = time.time()-stime
+        print("MINIBATCH %d: TRAIN AVG.LOSS %f, "
+              "(learning rate %e)" % (
+                  i + 1, tr_loss / (i*NNET_PARAM.batch_size+current_batchsize), lr), 'cost time: %f' % costtime)
+        sys.stdout.flush()
       i += 1
     except tf.errors.OutOfRangeError:
       break
