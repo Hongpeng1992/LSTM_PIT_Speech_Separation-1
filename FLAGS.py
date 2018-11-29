@@ -1,6 +1,19 @@
 class NNET_PARAM:
-  decode = 0 # Flag indicating decoding or training.
-  decode_show_spec = 1 # Flag indicating show spectrum or not.
+  '''
+  @decode
+  Flag indicating decoding or training.
+  Show (mixed_wav, mixed_wav_spec, cleaned_wav, cleaned_wav_pic, cleaned_wav_spec).
+  wav_pic is oscillograph.
+  wav_spec is spectrum
+  '''
+  decode = 0
+  '''
+  @decode_show_more
+  Flag indicating show  (label_wav, label_wav_spec, label_wav_pic) or not.
+  wav_pic is oscillograph.
+  wav_spec is spectrum
+  '''
+  decode_show_more = 1
   resume_training = 'false' # Flag indicating whether to resume training from cptk.
   input_size = 257 # The dimension of input.
   output_size = 257  # The dimension of output per speaker.
