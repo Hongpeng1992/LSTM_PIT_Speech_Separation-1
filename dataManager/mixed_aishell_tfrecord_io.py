@@ -370,7 +370,3 @@ def get_batch(tfrecords_list):
   dataset_iter = dataset.make_initializable_iterator()
   x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr = dataset_iter.get_next()
   return x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr, dataset_iter
-
-
-if __name__ == "__main__":
-  generate_tfrecord()
