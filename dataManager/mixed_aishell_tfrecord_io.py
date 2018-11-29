@@ -244,35 +244,35 @@ def parse_func(example_proto):
   return sequence['inputs'], sequence['labels1'], sequence['labels2'], length
 
 
-def _gen_tfrecord_minprocess(dataset_index_list, dataset_dir):
-  for (i, index_) in enumerate(dataset_index_list):
-    X_Y = _extract_feature_x_y(index_[0], index_[1])
-    X = np.reshape(np.array(X_Y[0], dtype=np.float32),
-                   newshape=[-1, NNET_PARAM.input_size])
-    Y = np.reshape(np.array(X_Y[1], dtype=np.float32),
-                   newshape=[-1, NNET_PARAM.output_size*2])
-    Y1 = Y[:, :NNET_PARAM.output_size]
-    Y2 = Y[:, NNET_PARAM.output_size:]
-    input_features = [
-        tf.train.Feature(float_list=tf.train.FloatList(value=input_))
-        for input_ in X]
-    label_features1 = [
-        tf.train.Feature(float_list=tf.train.FloatList(value=label))
-        for label in Y1]
-    label_features2 = [
-        tf.train.Feature(float_list=tf.train.FloatList(value=label))
-        for label in Y2]
-    feature_list = {
-        'inputs': tf.train.FeatureList(feature=input_features),
-        'labels1': tf.train.FeatureList(feature=label_features1),
-        'labels2': tf.train.FeatureList(feature=label_features2),
-    }
-    feature_lists = tf.train.FeatureLists(feature_list=feature_list)
-    record = tf.train.SequenceExample(feature_lists=feature_lists)
-    writer = tf.python_io.TFRecordWriter(os.path.join(
-        dataset_dir, ('%08d.tfrecords' % i)))
-    writer.write(record.SerializeToString())
-    writer.close()
+def _gen_tfrecord_minprocess(dataset_index_list, s_site, e_site, dataset_dir):
+  for i in range(s_site, e_site):
+    tfrecord_savedir = os.path.join(dataset_dir, ('%08d.tfrecords' % i))
+    with tf.python_io.TFRecordWriter(tfrecord_savedir) as writer:
+      index_ = dataset_index_list[i]
+      X_Y = _extract_feature_x_y(index_[0], index_[1])
+      X = np.reshape(np.array(X_Y[0], dtype=np.float32),
+                     newshape=[-1, NNET_PARAM.input_size])
+      Y = np.reshape(np.array(X_Y[1], dtype=np.float32),
+                     newshape=[-1, NNET_PARAM.output_size*2])
+      Y1 = Y[:, :NNET_PARAM.output_size]
+      Y2 = Y[:, NNET_PARAM.output_size:]
+      input_features = [
+          tf.train.Feature(float_list=tf.train.FloatList(value=input_))
+          for input_ in X]
+      label_features1 = [
+          tf.train.Feature(float_list=tf.train.FloatList(value=label))
+          for label in Y1]
+      label_features2 = [
+          tf.train.Feature(float_list=tf.train.FloatList(value=label))
+          for label in Y2]
+      feature_list = {
+          'inputs': tf.train.FeatureList(feature=input_features),
+          'labels1': tf.train.FeatureList(feature=label_features1),
+          'labels2': tf.train.FeatureList(feature=label_features2),
+      }
+      feature_lists = tf.train.FeatureLists(feature_list=feature_list)
+      record = tf.train.SequenceExample(feature_lists=feature_lists)
+      writer.write(record.SerializeToString())
     # print(dataset_dir + ('/%08d.tfrecords' % i), 'write done')
 
 
@@ -321,10 +321,14 @@ def generate_tfrecord(gen=True):
           e_site = len_dataset
         # print(s_site,e_site)
         pool.apply_async(_gen_tfrecord_minprocess,
-                         (copy.deepcopy(dataset_index_list[s_site:e_site]),
-                          copy.deepcopy(dataset_dir)))
-        # _gen_tfrecord_minprocess(copy.deepcopy(dataset_index_list[s_site:e_site]),
-        #                         copy.deepcopy(dataset_dir))
+                         (dataset_index_list,
+                          s_site,
+                          e_site,
+                          dataset_dir))
+        # _gen_tfrecord_minprocess(dataset_index_list,
+        #                          s_site,
+        #                          e_site,
+        #                          dataset_dir)
       pool.close()
       pool.join()
 
@@ -361,7 +365,7 @@ def get_batch(tfrecords_list):
   dataset = dataset.prefetch(buffer_size=NNET_PARAM.batch_size)
   dataset_iter = dataset.make_initializable_iterator()
   x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr = dataset_iter.get_next()
-  return x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr,dataset_iter
+  return x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr, dataset_iter
 
 
 if __name__ == "__main__":
