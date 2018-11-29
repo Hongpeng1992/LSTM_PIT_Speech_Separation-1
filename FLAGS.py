@@ -20,8 +20,9 @@ class NNET_PARAM:
   model_type = 'LSTM' # BLSTM or LSTM
 
 class MIXED_AISHELL_PARAM:
-  DATA_DICT_DIR='_data/mixed_aishell'
   RAW_DATA='/home/student/work/pit_test/data' # rawdata, dirs by speakerid
+  DATA_DICT_DIR='_data/mixed_aishell'
+  # TFRECORDS_DIR='/big-data/tmplhf/pit-data/feature_tfrecords_utt3s'
   TFRECORDS_DIR='/big-data/tmplhf/pit-data/feature_tfrecords_utt10s'
   PROCESS_NUM_GENERATE_TFERCORD=64
   LOG_NORM_MAX = 5
