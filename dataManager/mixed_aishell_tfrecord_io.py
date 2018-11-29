@@ -4,7 +4,6 @@ import librosa
 import os
 import shutil
 import time
-from . import mixed_aishell
 import multiprocessing
 import copy
 import scipy.io
@@ -142,6 +141,11 @@ def _get_waveData1_waveData2(file1, file2):
                             dtype=np.int16)
   f1.close()
   f2.close()
+  #!!!!! aishell dataset have zero length wave
+  if len(waveData1) == 0:
+    waveData1 = np.array([0], dtype=np.int16)
+  if len(waveData2) == 0:
+    waveData2 = np.array([0], dtype=np.int16)
   while len(waveData1) < LEN_WAWE_PAD_TO:
     waveData1 = np.tile(waveData1, 2)
   while len(waveData2) < LEN_WAWE_PAD_TO:
@@ -245,7 +249,11 @@ def parse_func(example_proto):
 
 
 def _gen_tfrecord_minprocess(dataset_index_list, s_site, e_site, dataset_dir):
+  # j=0
   for i in range(s_site, e_site):
+    # j+=1
+    # if j %100==0:
+    #   time.sleep(6)
     tfrecord_savedir = os.path.join(dataset_dir, ('%08d.tfrecords' % i))
     with tf.python_io.TFRecordWriter(tfrecord_savedir) as writer:
       index_ = dataset_index_list[i]
@@ -347,7 +355,7 @@ def get_batch(tfrecords_list):
   files = tf.data.Dataset.list_files(tfrecords_list)
   dataset = files.interleave(tf.data.TFRecordDataset,
                              cycle_length=1)
-  dataset = set.map(
+  dataset = dataset.map(
       map_func=parse_func,
       num_parallel_calls=NNET_PARAM.num_threads_processing_data)
   dataset = dataset.padded_batch(
