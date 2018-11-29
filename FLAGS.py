@@ -20,6 +20,10 @@ class NNET_PARAM:
   model_type = 'LSTM' # BLSTM or LSTM
 
 class MIXED_AISHELL_PARAM:
+  DATA_DICT_DIR='_data/mixed_aishell'
+  RAW_DATA='/home/student/work/pit_test/data' # rawdata, dirs by speakerid
+  TFRECORDS_DIR='/big-data/tmplhf/pit-data/feature_tfrecords_utt10s'
+  PROCESS_NUM_GENERATE_TFERCORD=64
   LOG_NORM_MAX = 5
   LOG_NORM_MIN = -3
   NFFT = 512
@@ -28,7 +32,7 @@ class MIXED_AISHELL_PARAM:
   # LEN_WAWE_PAD_TO = 16000*3 # Mixed wave length (16000*3 is 3 seconds)
   LEN_WAWE_PAD_TO = 16000*10
   UTT_SEG_FOR_MIX=[260,290] # Separate utt to [0:260],[260,290],[290:end]
-  DATASET_DIRS = ['train', 'validation', 'test_cc']
+  DATASET_NAMES = ['train', 'validation', 'test_cc']
   # DATASET_SIZES = [1400000, 18000, 180000]
   DATASET_SIZES = [405600, 5400, 20000]
   # WAVE_NORM=True
