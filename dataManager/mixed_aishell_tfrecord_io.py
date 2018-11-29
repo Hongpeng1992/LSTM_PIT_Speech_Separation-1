@@ -249,11 +249,7 @@ def parse_func(example_proto):
 
 
 def _gen_tfrecord_minprocess(dataset_index_list, s_site, e_site, dataset_dir):
-  # j=0
   for i in range(s_site, e_site):
-    # j+=1
-    # if j %100==0:
-    #   time.sleep(6)
     tfrecord_savedir = os.path.join(dataset_dir, ('%08d.tfrecords' % i))
     with tf.python_io.TFRecordWriter(tfrecord_savedir) as writer:
       index_ = dataset_index_list[i]
