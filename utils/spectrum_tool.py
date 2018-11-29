@@ -7,16 +7,17 @@ plt.switch_backend('agg')
 
 
 def picture_spec(spec,name):
-  for i in range(np.shape(spec)[0]):
-    spec_t=spec[i]
-    plt.pcolormesh(spec_t,)
-    plt.title('STFT Magnitude')
-    plt.xlabel('Frequency')
-    plt.ylabel('Time')
-    plt.savefig(name+("%03d.jpg" % i))
-    print("write pic "+name+("%03d" % i))
-    # plt.show()
-    plt.close()
+  # for i in range(np.shape(spec)[0]):
+    # spec_t=spec[i]
+  spec_t=spec
+  plt.pcolormesh(spec_t,)
+  plt.title('STFT Magnitude')
+  plt.xlabel('Frequency')
+  plt.ylabel('Time')
+  plt.savefig(name+".jpg")
+  print("write pic "+name)
+  # plt.show()
+  plt.close()
 
 def picture_wave(wave_t,name,framerate):
   nframes=np.shape(wave_t)[0]
