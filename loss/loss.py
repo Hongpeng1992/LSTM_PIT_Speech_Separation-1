@@ -41,4 +41,3 @@ def frame_PIT_MSE_for_CNN(y1, y2):
   loss2 = tf.reduce_mean(tf.square(tf.subtract(y1_swaped, y2)), axis=2)
   loss = tf.where(tf.less(loss1, loss2), loss1, loss2)
   return tf.reduce_mean(loss)
-
