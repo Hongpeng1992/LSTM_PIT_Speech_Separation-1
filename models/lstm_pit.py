@@ -13,7 +13,7 @@ import time
 import tensorflow as tf
 from tensorflow.contrib.rnn.python.ops import rnn
 import numpy as np
-from losses.loss import utt_PIT_MSE_for_LSTM
+from loss.loss import utt_PIT_MSE_for_LSTM
 from FLAGS import NNET_PARAM as config
 
 
