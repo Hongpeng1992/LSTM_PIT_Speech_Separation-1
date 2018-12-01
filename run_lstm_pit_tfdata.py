@@ -182,8 +182,8 @@ def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
         lr = sess.run(tr_model.lr)
         costtime = time.time()-stime
         stime = time.time()
-        print("MINIBATCH %05d: TRAIN AVG.LOSS %.6f, "
-              "(learning rate %e)" % (
+        print("MINIBATCH %05d: TRAIN AVG.LOSS %04.6f, "
+              "(learning rate %02.6f)" % (
                   i + 1, tr_loss / (i*NNET_PARAM.batch_size+current_batchsize), lr), 'cost time: %06dS' % costtime)
         sys.stdout.flush()
       i += 1
