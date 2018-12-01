@@ -10,7 +10,7 @@
 </tr>
 <tr align="left"><th>rnn_size</th><td>496</td><td></td><td></td><td></td><td>1024</td><td>496</td>
 </tr>
-<tr align="left"><th>rnn_layers_num</th><td>2</td><td></td><td>3</td><td>2</td><td></td><td>2</td>
+<tr align="left"><th>rnn_layers_num</th><td>2</td><td></td><td>3</td><td>2</td><td></td><td></td>
 </tr>
 <tr align="left"><th>batch_size</th><td>128</td><td></td><td></td><td></td><td>64</td><td>256</td>
 </tr>
