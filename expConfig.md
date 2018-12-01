@@ -43,16 +43,16 @@
 <td>6.2518</td><td>7.9592</td><td>=</td><td>7.7481</td><td>=</td>
 </tr>
 
-<tr align="left"><th>epoch_time(Normal)</th>
+<tr align="left"><th>epoch_duration<br>(Normal)</th>
 <td>5.5h</td><td>5.5h</td><td>7.0h</td><td>None</td><td>9.0h</td><td>None</td>
 </tr>
-<tr align="left"><th>epoch_time(SmallTFRecord+tfDataset)</th>
+<tr align="left"><th>epoch_duration<br>(SmallTFRecord+tfDataset)</th>
 <td>3.0h</td><td>None</td><td></td><td></td><td></td><td></td>
 </tr>
-<tr align="left"><th>epoch_time(BigTFRecord+tfDataset)</th>
+<tr align="left"><th>epoch_duration<br>(BigTFRecord+tfDataset)</th>
 <td>1.5h</td><td>None</td><td></td><td>=</td><td>None</td><td>=</td>
 </tr>
-<tr align="left"><th>epoch_time(BigTFRecord+tfQueue)</th>
+<tr align="left"><th>epoch_duration<br>(BigTFRecord+tfQueue)</th>
 <td>1.9h</td><td>None</td><td></td><td></td><td></td><td></td>
 </tr>
 <tr align="left"><th>speaker num</th><td>4</td><td></td><td></td><td></td><td></td><td>90</td>
