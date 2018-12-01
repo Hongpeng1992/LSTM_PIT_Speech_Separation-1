@@ -391,28 +391,36 @@ def generate_tfrecord(gen=True):
 
 def get_batch_use_tfdata(tfrecords_list):
   files = tf.data.Dataset.list_files(tfrecords_list)
-  # dataset = tf.data.TFRecordDataset(files)
-  dataset = files.interleave(tf.data.TFRecordDataset,
-                             cycle_length=128,
-                             #  block_length=128,
-                             #  num_parallel_calls=32,
-                             )
-  # OOM???
-  dataset = dataset.map(
-      map_func=parse_func,
-      num_parallel_calls=64)
-  dataset = dataset.padded_batch(
-      NNET_PARAM.batch_size,
-      padded_shapes=([None, NNET_PARAM.input_size],
-                     [None, NNET_PARAM.output_size],
-                     [None, NNET_PARAM.output_size],
-                     []))
-  # dataset = dataset.apply(tf.data.experimental.map_and_batch(
+  if MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'large':
+    dataset = files.interleave(tf.data.TFRecordDataset,
+                               cycle_length=1,
+                               block_length=NNET_PARAM.batch_size*2,
+                               #  num_parallel_calls=1,
+                               )
+  elif MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'small':
+    dataset = files.interleave(tf.data.TFRecordDataset,
+                               cycle_length=NNET_PARAM.batch_size*2,
+                               #  block_length=1,
+                               num_parallel_calls=NNET_PARAM.num_threads_processing_data,
+                               )
+  # !tf.data with tf.device(cpu) OOM???
+  # dataset = dataset.map(
   #     map_func=parse_func,
-  #     batch_size=NNET_PARAM.batch_size,
-  #     # num_parallel_calls=32,
-  #     num_parallel_batches=64,
-  # ))
+  #     num_parallel_calls=NNET_PARAM.num_threads_processing_data)
+  # dataset = dataset.padded_batch(
+  #     NNET_PARAM.batch_size,
+  #     padded_shapes=([None, NNET_PARAM.input_size],
+  #                    [None, NNET_PARAM.output_size],
+  #                    [None, NNET_PARAM.output_size],
+  #                    []))
+
+  # !map_and_batch efficient is better than map+paded_batch
+  dataset = dataset.apply(tf.data.experimental.map_and_batch(
+      map_func=parse_func,
+      batch_size=NNET_PARAM.batch_size,
+      # num_parallel_calls=32,
+      num_parallel_batches=64,
+  ))
   dataset = dataset.prefetch(buffer_size=NNET_PARAM.batch_size)
   dataset_iter = dataset.make_initializable_iterator()
   x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr = dataset_iter.get_next()
@@ -421,7 +429,8 @@ def get_batch_use_tfdata(tfrecords_list):
 
 def get_batch_use_queue(tfrecords_list):
   num_enqueuing_threads = 64
-  file_list = list(os.listdir(tfrecords_list[:-11]))
+  file_list = tf.gfile.ListDirectory(tfrecords_list[:-11])
+  file_list = tf.string_join([tfrecords_list[:-11], file_list])
   file_queue = tf.train.string_input_producer(
       file_list, num_epochs=NNET_PARAM.max_epochs, shuffle=False)
   reader = tf.TFRecordReader()
@@ -439,15 +448,18 @@ def get_batch_use_queue(tfrecords_list):
 
   length = tf.shape(sequence['inputs'])[0]
 
-  capacity = 1000 + (num_enqueuing_threads + 1) * NNET_PARAM.batch_size
+  capacity = (num_enqueuing_threads + 5) * NNET_PARAM.batch_size
   queue = tf.PaddingFIFOQueue(
       capacity=capacity,
       dtypes=[tf.float32, tf.float32, tf.float32, tf.int32],
-      shapes=[(None, NNET_PARAM.input_size), (None, NNET_PARAM.output_size), (1, 2), ()])
+      shapes=[(None, NNET_PARAM.input_size),
+              (None, NNET_PARAM.output_size),
+              (None, NNET_PARAM.output_size),
+              ()])
 
   enqueue_ops = [queue.enqueue([sequence['inputs'],
-                                sequence['labels'],
-                                sequence['genders'],
+                                sequence['labels1'],
+                                sequence['labels2'],
                                 length])] * num_enqueuing_threads
 
   tf.train.add_queue_runner(tf.train.QueueRunner(queue, enqueue_ops))

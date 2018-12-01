@@ -164,12 +164,12 @@ def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
     try:
       if NNET_PARAM.time_line:
         _, loss, current_batchsize = sess.run(
-            [tr_model.train_op, tr_model.loss, tr_model.current_batch_size],
+            [tr_model.train_op, tr_model.loss, tr_model.batch_size],
             options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE),
             run_metadata=run_metadata)
       else:
         _, loss, current_batchsize = sess.run(
-            [tr_model.train_op, tr_model.loss, tr_model.current_batch_size])
+            [tr_model.train_op, tr_model.loss, tr_model.batch_size])
       tr_loss += loss
       if (i+1) % NNET_PARAM.minibatch_size == 0:
         if NNET_PARAM.time_line and NNET_PARAM.timeline_type=='minibatch':
@@ -199,12 +199,12 @@ def eval_one_epoch(sess, val_model, run_metadata):
     try:
       if NNET_PARAM.time_line:
         loss, current_batchsize = sess.run(
-            [val_model.loss, val_model.current_batch_size],
+            [val_model.loss, val_model.batch_size],
             options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE),
             run_metadata=run_metadata)
       else:
         loss, current_batchsize = sess.run(
-            [val_model.loss, val_model.current_batch_size])
+            [val_model.loss, val_model.batch_size])
       val_loss += loss
       data_len += current_batchsize
     except tf.errors.OutOfRangeError:
