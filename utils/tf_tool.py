@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+import tensorflow.contrib.slim as slim
+import sys
 CPU = '/cpu:0'
 
 
@@ -96,3 +98,7 @@ def get_gpu_batch_size_list(n_x,n_gpu):
   gpu_batch_size_list=tf.concat([gpu_batch_size_list,[n_x]],0)
   return gpu_batch_size_list
 
+def show_all_variables():
+    model_vars = tf.trainable_variables()
+    slim.model_analyzer.analyze_vars(model_vars, print_info=True)
+    sys.stdout.flush()
