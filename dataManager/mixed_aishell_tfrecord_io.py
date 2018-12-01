@@ -248,7 +248,7 @@ def parse_func(example_proto):
   return sequence['inputs'], sequence['labels1'], sequence['labels2'], length
 
 
-def _gen_tfrecord_minprocess(dataset_index_list, s_site, e_site, dataset_dir):
+def _gen_tfrecord_minprocess_smallfile(dataset_index_list, s_site, e_site, dataset_dir):
   for i in range(s_site, e_site):
     tfrecord_savedir = os.path.join(dataset_dir, ('%08d.tfrecords' % i))
     with tf.python_io.TFRecordWriter(tfrecord_savedir) as writer:
@@ -277,6 +277,40 @@ def _gen_tfrecord_minprocess(dataset_index_list, s_site, e_site, dataset_dir):
       feature_lists = tf.train.FeatureLists(feature_list=feature_list)
       record = tf.train.SequenceExample(feature_lists=feature_lists)
       writer.write(record.SerializeToString())
+    # print(dataset_dir + ('/%08d.tfrecords' % i), 'write done')
+
+
+def _gen_tfrecord_minprocess_largefile(
+        dataset_index_list, s_site, e_site, dataset_dir, i_process):
+  tfrecord_savedir = os.path.join(dataset_dir, ('%08d.tfrecords' % i_process))
+  with tf.python_io.TFRecordWriter(tfrecord_savedir) as writer:
+    for i in range(s_site, e_site):
+      index_ = dataset_index_list[i]
+      X_Y = _extract_feature_x_y(index_[0], index_[1])
+      X = np.reshape(np.array(X_Y[0], dtype=np.float32),
+                     newshape=[-1, NNET_PARAM.input_size])
+      Y = np.reshape(np.array(X_Y[1], dtype=np.float32),
+                     newshape=[-1, NNET_PARAM.output_size*2])
+      Y1 = Y[:, :NNET_PARAM.output_size]
+      Y2 = Y[:, NNET_PARAM.output_size:]
+      input_features = [
+          tf.train.Feature(float_list=tf.train.FloatList(value=input_))
+          for input_ in X]
+      label_features1 = [
+          tf.train.Feature(float_list=tf.train.FloatList(value=label))
+          for label in Y1]
+      label_features2 = [
+          tf.train.Feature(float_list=tf.train.FloatList(value=label))
+          for label in Y2]
+      feature_list = {
+          'inputs': tf.train.FeatureList(feature=input_features),
+          'labels1': tf.train.FeatureList(feature=label_features1),
+          'labels2': tf.train.FeatureList(feature=label_features2),
+      }
+      feature_lists = tf.train.FeatureLists(feature_list=feature_list)
+      record = tf.train.SequenceExample(feature_lists=feature_lists)
+      writer.write(record.SerializeToString())
+    writer.flush()
     # print(dataset_dir + ('/%08d.tfrecords' % i), 'write done')
 
 
@@ -324,11 +358,19 @@ def generate_tfrecord(gen=True):
         if i_process == (PROCESS_NUM_GENERATE_TFERCORD-1):
           e_site = len_dataset
         # print(s_site,e_site)
-        pool.apply_async(_gen_tfrecord_minprocess,
-                         (dataset_index_list,
-                          s_site,
-                          e_site,
-                          dataset_dir))
+        if MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'small':
+          pool.apply_async(_gen_tfrecord_minprocess_smallfile,
+                           (dataset_index_list,
+                            s_site,
+                            e_site,
+                            dataset_dir))
+        elif MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'large':
+          pool.apply_async(_gen_tfrecord_minprocess_largefile,
+                           (dataset_index_list,
+                            s_site,
+                            e_site,
+                            dataset_dir,
+                            i_process))
         # _gen_tfrecord_minprocess(dataset_index_list,
         #                          s_site,
         #                          e_site,
@@ -336,9 +378,9 @@ def generate_tfrecord(gen=True):
       pool.close()
       pool.join()
 
-      print(dataset_dir+' set extraction over. cost time %06d' %
+      print(dataset_dir+' set extraction over. cost time %06dS' %
             (time.time()-start_time))
-    print('Generate TFRecord over. cost time %06d' %
+    print('Generate TFRecord over. cost time %06dS' %
           (time.time()-gen_start_time))
 
   train_set = os.path.join(train_tfrecords_dir, '*.tfrecords')
@@ -347,13 +389,18 @@ def generate_tfrecord(gen=True):
   return train_set, val_set, testcc_set
 
 
-def get_batch(tfrecords_list):
+def get_batch_use_tfdata(tfrecords_list):
   files = tf.data.Dataset.list_files(tfrecords_list)
+  # dataset = tf.data.TFRecordDataset(files)
   dataset = files.interleave(tf.data.TFRecordDataset,
-                             cycle_length=1)
+                             cycle_length=128,
+                             #  block_length=128,
+                             #  num_parallel_calls=32,
+                             )
+  # OOM???
   dataset = dataset.map(
       map_func=parse_func,
-      num_parallel_calls=NNET_PARAM.num_threads_processing_data)
+      num_parallel_calls=64)
   dataset = dataset.padded_batch(
       NNET_PARAM.batch_size,
       padded_shapes=([None, NNET_PARAM.input_size],
@@ -363,10 +410,45 @@ def get_batch(tfrecords_list):
   # dataset = dataset.apply(tf.data.experimental.map_and_batch(
   #     map_func=parse_func,
   #     batch_size=NNET_PARAM.batch_size,
-  #     num_parallel_calls=NNET_PARAM.num_threads_processing_data,
-  #     # num_parallel_batches=NNET_PARAM.num_threads_processing_data
+  #     # num_parallel_calls=32,
+  #     num_parallel_batches=64,
   # ))
   dataset = dataset.prefetch(buffer_size=NNET_PARAM.batch_size)
   dataset_iter = dataset.make_initializable_iterator()
   x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr = dataset_iter.get_next()
   return x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr, dataset_iter
+
+
+def get_batch_use_queue(tfrecords_list):
+  num_enqueuing_threads = 64
+  file_list = list(os.listdir(tfrecords_list[:-11]))
+  file_queue = tf.train.string_input_producer(
+      file_list, num_epochs=NNET_PARAM.max_epochs, shuffle=False)
+  reader = tf.TFRecordReader()
+  _, serialized_example = reader.read(file_queue)
+
+  sequence_features = {
+      'inputs': tf.FixedLenSequenceFeature(shape=[NNET_PARAM.input_size],
+                                           dtype=tf.float32),
+      'labels1': tf.FixedLenSequenceFeature(shape=[NNET_PARAM.output_size],
+                                            dtype=tf.float32),
+      'labels2': tf.FixedLenSequenceFeature(shape=[NNET_PARAM.output_size],
+                                            dtype=tf.float32), }
+  _, sequence = tf.parse_single_sequence_example(
+      serialized_example, sequence_features=sequence_features)
+
+  length = tf.shape(sequence['inputs'])[0]
+
+  capacity = 1000 + (num_enqueuing_threads + 1) * NNET_PARAM.batch_size
+  queue = tf.PaddingFIFOQueue(
+      capacity=capacity,
+      dtypes=[tf.float32, tf.float32, tf.float32, tf.int32],
+      shapes=[(None, NNET_PARAM.input_size), (None, NNET_PARAM.output_size), (1, 2), ()])
+
+  enqueue_ops = [queue.enqueue([sequence['inputs'],
+                                sequence['labels'],
+                                sequence['genders'],
+                                length])] * num_enqueuing_threads
+
+  tf.train.add_queue_runner(tf.train.QueueRunner(queue, enqueue_ops))
+  return queue.dequeue_many(NNET_PARAM.batch_size)
