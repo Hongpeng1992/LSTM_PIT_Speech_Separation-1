@@ -280,7 +280,7 @@ def _gen_tfrecord_minprocess_smallfile(dataset_index_list, s_site, e_site, datas
     # print(dataset_dir + ('/%08d.tfrecords' % i), 'write done')
 
 
-def _gen_tfrecord_minprocess_largefile(
+def _gen_tfrecord_minprocess_bigfile(
         dataset_index_list, s_site, e_site, dataset_dir, i_process):
   tfrecord_savedir = os.path.join(dataset_dir, ('%08d.tfrecords' % i_process))
   with tf.python_io.TFRecordWriter(tfrecord_savedir) as writer:
@@ -364,8 +364,8 @@ def generate_tfrecord(gen=True):
                             s_site,
                             e_site,
                             dataset_dir))
-        elif MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'large':
-          pool.apply_async(_gen_tfrecord_minprocess_largefile,
+        elif MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'big':
+          pool.apply_async(_gen_tfrecord_minprocess_bigfile,
                            (dataset_index_list,
                             s_site,
                             e_site,
@@ -391,7 +391,7 @@ def generate_tfrecord(gen=True):
 
 def get_batch_use_tfdata(tfrecords_list):
   files = tf.data.Dataset.list_files(tfrecords_list)
-  if MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'large':
+  if MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'big':
     dataset = files.interleave(tf.data.TFRecordDataset,
                                cycle_length=1,
                                block_length=NNET_PARAM.batch_size*2,

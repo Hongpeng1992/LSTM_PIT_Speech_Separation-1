@@ -46,7 +46,7 @@ class MIXED_AISHELL_PARAM:
 
   '''
   TFRECORDS_DIR='/big-data/tmplhf/pit-data/feature_tfrecords_utt03s'
-  TFRECORDS_FILE_TYPE='small' # 'large' or 'small'.if 'small', one file per record.
+  TFRECORDS_FILE_TYPE='small' # 'big' or 'small'.if 'small', one file per record.
   LEN_WAWE_PAD_TO = 16000*3 # Mixed wave length (16000*3 is 3 seconds)
   UTT_SEG_FOR_MIX = [260, 290]  # Separate utt to [0:260],[260,290],[290:end]
   DATASET_NAMES = ['train', 'validation', 'test_cc']
@@ -54,7 +54,7 @@ class MIXED_AISHELL_PARAM:
   '''
 
   TFRECORDS_DIR='/ntfs/tmplhf/pit-data/feature_tfrecords_utt03s_big'
-  TFRECORDS_FILE_TYPE='large' # 'large' or 'small'.if 'small', one file per record.
+  TFRECORDS_FILE_TYPE='big' # 'big' or 'small'.if 'small', one file per record.
   LEN_WAWE_PAD_TO = 16000*3 # Mixed wave length (16000*3 is 3 seconds)
   UTT_SEG_FOR_MIX = [260, 290]  # Separate utt to [0:260],[260,290],[290:end]
   DATASET_NAMES = ['train', 'validation', 'test_cc']
@@ -62,7 +62,7 @@ class MIXED_AISHELL_PARAM:
 
   '''
   TFRECORDS_DIR = '/big-data/tmplhf/pit-data/feature_tfrecords_utt10s'
-  TFRECORDS_FILE_TYPE='small' # 'large' or 'small'.if 'small', one file per record.
+  TFRECORDS_FILE_TYPE='small' # 'big' or 'small'.if 'small', one file per record.
   LEN_WAWE_PAD_TO = 16000*10 # Mixed wave length (16000*3 is 3 seconds)
   UTT_SEG_FOR_MIX = [260, 290]  # Separate utt to [0:260],[260,290],[290:end]
   DATASET_NAMES = ['train', 'validation', 'test_cc']
@@ -70,7 +70,7 @@ class MIXED_AISHELL_PARAM:
   '''
   '''
   TFRECORDS_DIR='/ntfs/tmplhf/pit-data/feature_tfrecords_utt10s_big'
-  TFRECORDS_FILE_TYPE='large' # 'large' or 'small'.if 'small', one file per record.
+  TFRECORDS_FILE_TYPE='big' # 'big' or 'small'.if 'small', one file per record.
   LEN_WAWE_PAD_TO = 16000*10 # Mixed wave length (16000*3 is 3 seconds)
   UTT_SEG_FOR_MIX = [260, 290]  # Separate utt to [0:260],[260,290],[290:end]
   DATASET_NAMES = ['train', 'validation', 'test_cc']
