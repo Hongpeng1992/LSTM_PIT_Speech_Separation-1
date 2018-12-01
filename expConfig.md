@@ -8,7 +8,7 @@
 </tr>
 <tr align="left"><th>output_size</th><td>257</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
-<tr align="left"><th>rnn_size</th><td>496</td><td></td><td></td><td></td><td>1024</td><td></td>
+<tr align="left"><th>rnn_size</th><td>496</td><td></td><td></td><td></td><td>1024</td><td>496</td>
 </tr>
 <tr align="left"><th>rnn_layers_num</th><td>2</td><td></td><td>3</td><td>2</td><td></td><td>2</td>
 </tr>
