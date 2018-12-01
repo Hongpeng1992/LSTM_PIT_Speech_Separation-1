@@ -14,10 +14,7 @@ class NNET_PARAM:
   wav_spec is spectrum
   '''
   decode_show_more = 1
-
-  # Flag indicating whether to resume training from cptk.
-  resume_training = 'false'
-
+  resume_training = 'false' # Flag indicating whether to resume training from cptk.
   input_size = 257  # The dimension of input.
   output_size = 257  # The dimension of output per speaker.
   rnn_size = 496  # Number of rnn units to use.
@@ -27,30 +24,22 @@ class NNET_PARAM:
   min_epochs = 10  # Min number of epochs to run trainer without halving.
   max_epochs = 50  # Max number of epochs to run trainer totally.
   halving_factor = 0.5  # Factor for halving.
-
-  # Halving when ralative loss is lower than start_halving_impr.
-  start_halving_impr = 0.003
-
-  # Stop when relative loss is lower than end_halving_impr.
-  end_halving_impr = 0.001
-
-  # The num of threads to read tfrecords files.
-  num_threads_processing_data = 1
-
+  start_halving_impr = 0.003 # Halving when ralative loss is lower than start_halving_impr.
+  end_halving_impr = 0.001  # Stop when relative loss is lower than end_halving_impr.
+  num_threads_processing_data = 1  # The num of threads to read tfrecords files.
   save_dir = 'exp/lstm_pit'  # Directory to put the train result.
   keep_prob = 0.8  # Keep probability for training dropout.
   max_grad_norm = 5.0  # The max gradient normalization.
   model_type = 'LSTM'  # BLSTM or LSTM
-  GPU_RAM_ALLOW_GROWTH = True
+  GPU_RAM_ALLOW_GROWTH=True
 
-  minibatch_size = 200  # batch num to show
-  time_line = False  # generate timeline file
+  minibatch_size=200  # batch num to show
+  time_line = False # generate timeline file
   timeline_type = 'minibatch'  # timeline write method. 'epoch' ro 'minibatch'
 
 
 class MIXED_AISHELL_PARAM:
-  # rawdata, dirs by speakerid, like "....data_aishell/wav/train".
-  RAW_DATA = '/home/student/work/pit_test/data'
+  RAW_DATA = '/home/student/work/pit_test/data'  # rawdata, dirs by speakerid, like "....data_aishell/wav/train".
   DATA_DICT_DIR = '_data/mixed_aishell'
   GENERATE_TFRECORD = False
   PROCESS_NUM_GENERATE_TFERCORD = 64
@@ -73,12 +62,12 @@ class MIXED_AISHELL_PARAM:
   '''
 
   TFRECORDS_DIR = '/big-data/tmplhf/pit-data/feature_tfrecords_utt10s'
-  # 'large' or 'small'.if 'small', one file per record.
-  TFRECORDS_FILE_TYPE = 'small'
-  LEN_WAWE_PAD_TO = 16000*10  # Mixed wave length (16000*3 is 3 seconds)
+  TFRECORDS_FILE_TYPE='small' # 'large' or 'small'.if 'small', one file per record.
+  LEN_WAWE_PAD_TO = 16000*10 # Mixed wave length (16000*3 is 3 seconds)
   UTT_SEG_FOR_MIX = [260, 290]  # Separate utt to [0:260],[260,290],[290:end]
   DATASET_NAMES = ['train', 'validation', 'test_cc']
   DATASET_SIZES = [405600, 5400, 20000]
+
 
   '''
   TFRECORDS_DIR='/ntfs/tmplhf/pit-data/feature_tfrecords_utt10s_big'
@@ -88,6 +77,7 @@ class MIXED_AISHELL_PARAM:
   DATASET_NAMES = ['train', 'validation', 'test_cc']
   DATASET_SIZES = [405600, 5400, 20000]
   '''
+
 
   # WAVE_NORM=True
   WAVE_NORM = False
