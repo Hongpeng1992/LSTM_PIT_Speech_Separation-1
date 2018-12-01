@@ -158,8 +158,7 @@ def decode():
 
 def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
   """Runs the model one epoch on given data."""
-  tr_loss = 0
-  i = 0
+  tr_loss, i = 0, 0
   stime = time.time()
   while True:
     try:
@@ -181,9 +180,9 @@ def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
         lr = sess.run(tr_model.lr)
         costtime = time.time()-stime
         stime = time.time()
-        print("MINIBATCH %d: TRAIN AVG.LOSS %f, "
+        print("MINIBATCH %05d: TRAIN AVG.LOSS %.6f, "
               "(learning rate %e)" % (
-                  i + 1, tr_loss / (i*NNET_PARAM.batch_size+current_batchsize), lr), 'cost time: %f' % costtime)
+                  i + 1, tr_loss / (i*NNET_PARAM.batch_size+current_batchsize), lr), 'cost time: %06dS' % costtime)
         sys.stdout.flush()
       i += 1
     except tf.errors.OutOfRangeError:
