@@ -36,6 +36,7 @@ class LSTM(object):
   """
 
   def __init__(self, inputs_batch, label1_batch, label2_batch, lengths_batch, infer=False):
+    # tf.data out node with cpu is faster.
     with tf.device('/cpu:0'):
       self._inputs = inputs_batch
       self._mixed = self._inputs
