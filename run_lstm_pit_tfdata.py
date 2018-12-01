@@ -219,10 +219,10 @@ def train():
 
   g = tf.Graph()
   with g.as_default():
+    # region TFRecord+DataSet
     # tf.data with cpu is faster, but padded_batch may not surpport.
     with tf.device('/cpu:0'):
       with tf.name_scope('input'):
-        # region TFRecord+DataSet
         train_tfrecords, val_tfrecords, testcc_tfrecords = generate_tfrecord(
             gen=MIXED_AISHELL_PARAM.GENERATE_TFRECORD)
         if MIXED_AISHELL_PARAM.GENERATE_TFRECORD:
@@ -231,7 +231,9 @@ def train():
             train_tfrecords)
         x_batch_val, y1_batch_val, y2_batch_val, lengths_batch_val, iter_val = get_batch_use_tfdata(
             val_tfrecords)
-        # endregion
+    # endregion
+
+    # build model
     with tf.name_scope('model'):
       tr_model = LSTM(x_batch_tr,
                       y1_batch_tr,
@@ -261,25 +263,27 @@ def train():
         best_path = ckpt.model_checkpoint_path
       else:
         tf.logging.fatal("checkpoint not found")
+      with open(os.path.join(NNET_PARAM.save_dir,'train.log'),'a+') as f:
+        f.writelines('Training resumed.\n')
+    else:
+      if os.path.exists(os.path.join(NNET_PARAM.save_dir,'train.log')):
+        os.remove(os.path.join(NNET_PARAM.save_dir,'train.log'))
 
-    # validation before training.
+    # prepare run_metadata for timeline
     run_metadata = None
     if NNET_PARAM.time_line:
       run_metadata = tf.RunMetadata()
       if os.path.exists('_timeline'):
         shutil.rmtree('_timeline')
       os.mkdir('_timeline')
-    sess.run(iter_val.initializer)
-    start_time = time.time()
-    print('shape')
-    print(sess.run([tf.shape(x_batch_val), tf.shape(y1_batch_val),
-                    tf.shape(y2_batch_val), tf.shape(lengths_batch_val)]))
-    print('time prepare valdata :', time.time()-start_time)
+
+    # validation before training.
+    valstart_time = time.time()
     loss_prev = eval_one_epoch(sess,
                                val_model,
                                run_metadata)
     tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4FS  costime %d" %
-                    (loss_prev, time.time()-start_time))
+                    (loss_prev, time.time()-valstart_time))
 
     sess.run(tf.assign(tr_model.lr, NNET_PARAM.learning_rate))
     g.finalize()
@@ -288,16 +292,12 @@ def train():
     for epoch in range(NNET_PARAM.max_epochs):
       sess.run([iter_train.initializer, iter_val.initializer])
       start_time = time.time()
-      # Training
-      # print('shape')
-      # print(sess.run([tf.shape(x_batch_tr), tf.shape(y1_batch_tr),
-      #                 tf.shape(y2_batch_tr), tf.shape(lengths_batch_tr)]))
-      # print('time prepare trdata :', time.time()-start_time)
+
+      # train one epoch
       tr_loss = train_one_epoch(sess,
                                 tr_model,
                                 epoch,
                                 run_metadata)
-      # exit(0)
 
       # Validation
       val_loss = eval_one_epoch(sess,
@@ -305,6 +305,7 @@ def train():
                                 run_metadata)
 
       end_time = time.time()
+
       # Determine checkpoint path
       ckpt_name = "nnet_iter%d_lrate%e_trloss%.4f_cvloss%.4f_costtime%dS" % (
           epoch + 1, NNET_PARAM.learning_rate, tr_loss, val_loss, end_time - start_time)
@@ -312,28 +313,30 @@ def train():
       if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
       ckpt_path = os.path.join(ckpt_dir, ckpt_name)
+
       # Relative loss between previous and current val_loss
       rel_impr = np.abs(loss_prev - val_loss) / loss_prev
       # Accept or reject new parameters
+      msg=""
       if val_loss < loss_prev:
         tr_model.saver.save(sess, ckpt_path)
         # Logging train loss along with validation loss
         loss_prev = val_loss
         best_path = ckpt_path
-        tf.logging.info(
-            "ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL"
-            " AVG.LOSS %.4f, %s (%s), TIME USED: %.2fs" % (
-                epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
-                "nnet accepted", ckpt_name,
-                (end_time - start_time) / 1))
+        msg = "ITERATION %03d: TRAIN AVG.LOSS %.4f, lrate%e, CROSSVAL AVG.LOSS %.4f, %s (%s), TIME USED: %.2fs" % (
+            epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
+            "nnet accepted", ckpt_name,
+            (end_time - start_time) / 1)
+        tf.logging.info(msg)
       else:
         tr_model.saver.restore(sess, best_path)
-        tf.logging.info(
-            "ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL"
-            " AVG.LOSS %.4f, %s, (%s), TIME USED: %.2fs" % (
+        msg="ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL AVG.LOSS %.4f, %s, (%s), TIME USED: %.2fs" % (
                 epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
                 "nnet rejected", ckpt_name,
-                (end_time - start_time) / 1))
+                (end_time - start_time) / 1)
+        tf.logging.info(msg)
+      with open(os.path.join(NNET_PARAM.save_dir,'train.log'),'a+') as f:
+        f.writelines(msg+'\n')
 
       # Start halving when improvement is low
       if rel_impr < NNET_PARAM.start_halving_impr:
