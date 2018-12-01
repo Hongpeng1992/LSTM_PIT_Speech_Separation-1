@@ -36,17 +36,20 @@ class LSTM(object):
   """
 
   def __init__(self, inputs_batch, label1_batch, label2_batch, lengths_batch, infer=False):
-    self._inputs = inputs_batch
-    self._mixed = self._inputs
+    with tf.device('/cpu:0'):
+      self._inputs = inputs_batch
+      self._mixed = self._inputs
 
-    self._labels1 = label1_batch
-    self._labels2 = label2_batch
+      self._labels1 = label1_batch
+      self._labels2 = label2_batch
 
-    self._lengths = lengths_batch
+      self._lengths = lengths_batch
 
     self.batch_size = tf.shape(self._inputs)[0]
 
     self._model_type = config.model_type
+
+    self.current_batch_size=tf.shape(self._lengths)[0]
 
     outputs = self._inputs
     # This first layer-- feed forward layer
