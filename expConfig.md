@@ -4,31 +4,31 @@
 </tr>
 <tr align="left"><th>wav_mag_normalize</th><td>No</td><td>Yes</td><td></td><td>No</td><td>Yes</td><td>No</td>
 </tr>
-<tr align="left"><th>input_size</th><td>257</td><td></td><td></td><td></td><td></td><td>257</td>
+<tr align="left"><th>input_size</th><td>257</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
-<tr align="left"><th>output_size</th><td>257</td><td></td><td></td><td></td><td></td><td>257</td>
+<tr align="left"><th>output_size</th><td>257</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
-<tr align="left"><th>rnn_size</th><td>496</td><td></td><td></td><td></td><td>1024</td><td>496</td>
+<tr align="left"><th>rnn_size</th><td>496</td><td></td><td></td><td></td><td>1024</td><td></td>
 </tr>
-<tr align="left"><th>rnn_layers_num</th><td>2</td><td></td><td>3</td><td>2/3?</td><td></td><td>2</td>
+<tr align="left"><th>rnn_layers_num</th><td>2</td><td></td><td>3</td><td>2</td><td></td><td>2</td>
 </tr>
-<tr align="left"><th>batch_size</th><td>128</td><td></td><td></td><td></td><td>64</td><td>128</td>
+<tr align="left"><th>batch_size</th><td>128</td><td></td><td></td><td></td><td>64</td><td>256</td>
 </tr>
 <tr align="left"><th>learning_rate</th><td>0.001</td><td></td><td></td><td></td><td>0.002</td><td>0.001</td>
 </tr>
-<tr align="left"><th>min_epoches</th><td>10</td><td></td><td></td><td></td><td></td><td>10</td>
+<tr align="left"><th>min_epoches</th><td>10</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
-<tr align="left"><th>max_epoches</th><td>50</td><td></td><td></td><td></td><td></td><td>20</td>
+<tr align="left"><th>max_epoches</th><td>50</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
 <tr align="left"><th>halving_factor</th><td>0.5</td><td></td><td></td><td></td><td></td><td>0.7</td>
 </tr>
-<tr align="left"><th>start_halving_impr</th><td>0.003</td><td></td><td></td><td></td><td></td><td>0.003</td>
+<tr align="left"><th>start_halving_impr</th><td>0.003</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
 <tr align="left"><th>end_halving_impr</th><td>0.001</td><td></td><td></td><td></td><td></td><td>0.0005</td>
 </tr>
-<tr align="left"><th>keep_prob</th><td>0.8</td><td></td><td></td><td></td><td></td><td>0.8</td>
+<tr align="left"><th>keep_prob</th><td>0.8</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
-<tr align="left"><th>max_grad_norm</th><td>5.0</td><td></td><td></td><td></td><td></td><td>5.0</td>
+<tr align="left"><th>max_grad_norm</th><td>5.0</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
 <tr align="left"><th>model_type</th><td>LSTM</td><td></td><td></td><td>BLSTM</td><td>LSTM</td><td>BLSTM</td>
 </tr>
@@ -43,15 +43,23 @@
 <td>6.2518</td><td>7.9592</td><td>=</td><td>7.7481</td><td>=</td>
 </tr>
 
-<tr align="left"><th>epoch_cost_time(Normal)</th>
-<td>5.5h</td><td>5.5h</td><td>7.0h</td><td></td><td>9.0h</td><td>---------</td>
+<tr align="left"><th>epoch_time(Normal)</th>
+<td>5.5h</td><td>5.5h</td><td>7.0h</td><td>None</td><td>9.0h</td><td>None</td>
 </tr>
-<tr align="left"><th>epoch_cost_time(TFRecord+tf.data)</th>
-<td></td><td>---------</td><td></td><td></td><td></td><td></td>
+<tr align="left"><th>epoch_time(SmallTFRecord+tfDataset)</th>
+<td>3.0h</td><td>None</td><td></td><td></td><td></td><td></td>
+</tr>
+<tr align="left"><th>epoch_time(BigTFRecord+tfDataset)</th>
+<td>1.5h</td><td>None</td><td></td><td>=</td><td>None</td><td>=</td>
+</tr>
+<tr align="left"><th>epoch_time(BigTFRecord+tfQueue)</th>
+<td>1.9h</td><td>None</td><td></td><td></td><td></td><td></td>
 </tr>
 <tr align="left"><th>speaker num</th><td>4</td><td></td><td></td><td></td><td></td><td>90</td>
 </tr>
-<tr align="left"><th>training speech time</th><td>1126h</td><td></td><td></td><td></td><td></td><td>1166h</td>
+<tr align="left"><th>train_set speech duration</th><td>1126h</td><td></td><td></td><td></td><td></td><td>1166h</td>
+</tr>
+<tr align="left"><th>utterance duration</th><td>10S</td><td></td><td></td><td></td><td></td><td>3S</td>
 </tr>
 <tr align="left"><th>--------------------------</th>
 <td>---------</td>
