@@ -6,7 +6,7 @@
 </tr>
 <tr align="left"><th>input_size</th><td>257</td><td></td><td></td><td></td><td></td><td></td>
 </tr>
-<tr align="left"><th>output_size</th><td>257</td><td></td><td></td><td></td><td></td><td></td>
+<tr align="left"><th>output_size</th><td>257</td><td></td><td></td><td></td><td></td><td>496</td>
 </tr>
 <tr align="left"><th>rnn_size</th><td>496</td><td></td><td></td><td></td><td>1024</td><td></td>
 </tr>
