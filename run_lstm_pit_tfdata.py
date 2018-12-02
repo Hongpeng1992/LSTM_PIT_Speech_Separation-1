@@ -184,7 +184,7 @@ def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
         stime = time.time()
         print("MINIBATCH %05d: TRAIN AVG.LOSS %04.6f, "
               "(learning rate %02.6f)" % (
-                  i + 1, tr_loss / (i*NNET_PARAM.batch_size+current_batchsize), lr), 'cost time: %06dS' % costtime)
+                  i + 1, tr_loss / (i*NNET_PARAM.batch_size+current_batchsize), lr), 'DURATION: %06dS' % costtime)
         sys.stdout.flush()
       i += 1
     except tf.errors.OutOfRangeError:
@@ -263,11 +263,11 @@ def train():
         best_path = ckpt.model_checkpoint_path
       else:
         tf.logging.fatal("checkpoint not found")
-      with open(os.path.join(NNET_PARAM.save_dir,'train.log'),'a+') as f:
+      with open(os.path.join(NNET_PARAM.save_dir, 'train.log'), 'a+') as f:
         f.writelines('Training resumed.\n')
     else:
-      if os.path.exists(os.path.join(NNET_PARAM.save_dir,'train.log')):
-        os.remove(os.path.join(NNET_PARAM.save_dir,'train.log'))
+      if os.path.exists(os.path.join(NNET_PARAM.save_dir, 'train.log')):
+        os.remove(os.path.join(NNET_PARAM.save_dir, 'train.log'))
 
     # prepare run_metadata for timeline
     run_metadata = None
@@ -307,7 +307,7 @@ def train():
       end_time = time.time()
 
       # Determine checkpoint path
-      ckpt_name = "nnet_iter%d_lrate%e_trloss%.4f_cvloss%.4f_costtime%dS" % (
+      ckpt_name = "nnet_iter%d_lrate%e_trloss%.4f_cvloss%.4f_duration%ds" % (
           epoch + 1, NNET_PARAM.learning_rate, tr_loss, val_loss, end_time - start_time)
       ckpt_dir = NNET_PARAM.save_dir + '/nnet'
       if not os.path.exists(ckpt_dir):
@@ -315,27 +315,27 @@ def train():
       ckpt_path = os.path.join(ckpt_dir, ckpt_name)
 
       # Relative loss between previous and current val_loss
-      rel_impr = np.abs(loss_prev - val_loss) / loss_prev
+      rel_impr = (loss_prev - val_loss) / loss_prev
       # Accept or reject new parameters
-      msg=""
+      msg = ""
       if val_loss < loss_prev:
         tr_model.saver.save(sess, ckpt_path)
         # Logging train loss along with validation loss
         loss_prev = val_loss
         best_path = ckpt_path
-        msg = "ITERATION %03d: TRAIN AVG.LOSS %.4f, lrate%e, CROSSVAL AVG.LOSS %.4f, %s (%s), TIME USED: %.2fs" % (
+        msg = ("Iteration %03d: TRAIN AVG.LOSS %.4f, lrate%e, VAL AVG.LOSS %.4f,\n"
+               "%s, ckpt(%s) saved,\nEPOCH DURATION: %.2fs") % (
             epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
-            "nnet accepted", ckpt_name,
-            (end_time - start_time) / 1)
+            "NNET Accepted", ckpt_name,end_time - start_time)
         tf.logging.info(msg)
       else:
         tr_model.saver.restore(sess, best_path)
-        msg="ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL AVG.LOSS %.4f, %s, (%s), TIME USED: %.2fs" % (
-                epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
-                "nnet rejected", ckpt_name,
-                (end_time - start_time) / 1)
+        msg = ("ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) VAL AVG.LOSS %.4f,\n"
+               "%s, ckpt(%s) saved,\nEPOCH DURATION: %.2fs") % (
+            epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
+            "NNET Rejected", ckpt_name, end_time - start_time)
         tf.logging.info(msg)
-      with open(os.path.join(NNET_PARAM.save_dir,'train.log'),'a+') as f:
+      with open(os.path.join(NNET_PARAM.save_dir, 'train.log'), 'a+') as f:
         f.writelines(msg+'\n')
 
       # Start halving when improvement is low

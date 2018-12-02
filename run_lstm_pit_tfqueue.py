@@ -310,7 +310,7 @@ def train():
           os.makedirs(ckpt_dir)
         ckpt_path = os.path.join(ckpt_dir, ckpt_name)
         # Relative loss between previous and current val_loss
-        rel_impr = np.abs(loss_prev - val_loss) / loss_prev
+        rel_impr = (loss_prev - val_loss) / loss_prev
         # Accept or reject new parameters
         if val_loss < loss_prev:
           tr_model.saver.save(sess, ckpt_path)
