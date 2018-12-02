@@ -279,6 +279,7 @@ def train():
 
     # validation before training.
     valstart_time = time.time()
+    sess.run(iter_val.initializer)
     loss_prev = eval_one_epoch(sess,
                                val_model,
                                run_metadata)
