@@ -34,7 +34,7 @@ class NNET_PARAM:
   GPU_RAM_ALLOW_GROWTH=True
 
   minibatch_size=400  # batch num to show
-  time_line = False # generate timeline file
+  time_line = False # generate timeline file. # !!! timeling is not work now, so set it false unless to test it.
   timeline_type = 'minibatch'  # timeline write method. 'epoch' ro 'minibatch'
 
 
