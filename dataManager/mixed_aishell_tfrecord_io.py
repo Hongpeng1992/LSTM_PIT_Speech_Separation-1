@@ -394,12 +394,12 @@ def get_batch_use_tfdata(tfrecords_list):
   if MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'big':
     dataset = files.interleave(tf.data.TFRecordDataset,
                                cycle_length=1,
-                               block_length=NNET_PARAM.batch_size*2,
+                               block_length=NNET_PARAM.batch_size,
                                #  num_parallel_calls=1,
                                )
   elif MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'small':
     dataset = files.interleave(tf.data.TFRecordDataset,
-                               cycle_length=NNET_PARAM.batch_size*2,
+                               cycle_length=NNET_PARAM.batch_size,
                                #  block_length=1,
                                num_parallel_calls=NNET_PARAM.num_threads_processing_data,
                                )
@@ -418,8 +418,8 @@ def get_batch_use_tfdata(tfrecords_list):
   dataset = dataset.apply(tf.data.experimental.map_and_batch(
       map_func=parse_func,
       batch_size=NNET_PARAM.batch_size,
-      # num_parallel_calls=32,
-      num_parallel_batches=64,
+      num_parallel_calls=64,
+      # num_parallel_batches=2,
   ))
   dataset = dataset.prefetch(buffer_size=NNET_PARAM.batch_size)
   dataset_iter = dataset.make_initializable_iterator()
