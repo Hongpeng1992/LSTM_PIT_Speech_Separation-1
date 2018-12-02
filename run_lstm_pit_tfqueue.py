@@ -172,7 +172,7 @@ def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
             [tr_model.train_op, tr_model.loss, tr_model.batch_size])
       tr_loss += loss
       if (i+1) % NNET_PARAM.minibatch_size == 0:
-        if NNET_PARAM.time_line and NNET_PARAM.timeline_type=='minibatch':
+        if NNET_PARAM.time_line and NNET_PARAM.timeline_type == 'minibatch':
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
           with open('_timeline/%03dtimeline%04d.json' % (i_epoch, i+1), 'w') as f:
@@ -263,7 +263,7 @@ def train():
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
     try:
       # validation before training.
-      run_metadata=None
+      run_metadata = None
       if NNET_PARAM.time_line:
         run_metadata = tf.RunMetadata()
         if os.path.exists('_timeline'):
@@ -282,6 +282,7 @@ def train():
                       (loss_prev, time.time()-start_time))
 
       sess.run(tf.assign(tr_model.lr, NNET_PARAM.learning_rate))
+      reject_num = 0
       for epoch in range(NNET_PARAM.max_epochs):
         # sess.run([iter_train.initializer, iter_val.initializer])
         start_time = time.time()
@@ -310,9 +311,10 @@ def train():
           os.makedirs(ckpt_dir)
         ckpt_path = os.path.join(ckpt_dir, ckpt_name)
         # Relative loss between previous and current val_loss
-        rel_impr = (loss_prev - val_loss) / loss_prev
+        rel_impr = np.abs(loss_prev - val_loss) / loss_prev
         # Accept or reject new parameters
         if val_loss < loss_prev:
+          reject_num = 0
           tr_model.saver.save(sess, ckpt_path)
           # Logging train loss along with validation loss
           loss_prev = val_loss
@@ -324,6 +326,7 @@ def train():
                   "nnet accepted", ckpt_name,
                   (end_time - start_time) / 1))
         else:
+          reject_num += 1
           tr_model.saver.restore(sess, best_path)
           tf.logging.info(
               "ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL"
@@ -333,7 +336,8 @@ def train():
                   (end_time - start_time) / 1))
 
         # Start halving when improvement is low
-        if rel_impr < NNET_PARAM.start_halving_impr:
+        if (rel_impr < NNET_PARAM.start_halving_impr) or (reject_num >= 3):
+          reject_num = 0
           NNET_PARAM.learning_rate *= NNET_PARAM.halving_factor
           sess.run(tf.assign(tr_model.lr, NNET_PARAM.learning_rate))
 
@@ -350,7 +354,7 @@ def train():
             break
 
         # save timeline
-        if NNET_PARAM.time_line and NNET_PARAM.timeline_type=='epoch':
+        if NNET_PARAM.time_line and NNET_PARAM.timeline_type == 'epoch':
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
           with open('_timeline/%03dtimeline.json' % (epoch,), 'w') as f:

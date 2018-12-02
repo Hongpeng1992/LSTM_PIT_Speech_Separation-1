@@ -289,6 +289,7 @@ def train():
     g.finalize()
 
     # epochs training
+    reject_num = 0
     for epoch in range(NNET_PARAM.max_epochs):
       sess.run([iter_train.initializer, iter_val.initializer])
       start_time = time.time()
@@ -315,10 +316,11 @@ def train():
       ckpt_path = os.path.join(ckpt_dir, ckpt_name)
 
       # Relative loss between previous and current val_loss
-      rel_impr = (loss_prev - val_loss) / loss_prev
+      rel_impr = np.abs(loss_prev - val_loss) / loss_prev
       # Accept or reject new parameters
       msg = ""
       if val_loss < loss_prev:
+        reject_num = 0
         tr_model.saver.save(sess, ckpt_path)
         # Logging train loss along with validation loss
         loss_prev = val_loss
@@ -326,9 +328,10 @@ def train():
         msg = ("Iteration %03d: TRAIN AVG.LOSS %.4f, lrate%e, VAL AVG.LOSS %.4f,\n"
                "%s, ckpt(%s) saved,\nEPOCH DURATION: %.2fs") % (
             epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
-            "NNET Accepted", ckpt_name,end_time - start_time)
+            "NNET Accepted", ckpt_name, end_time - start_time)
         tf.logging.info(msg)
       else:
+        reject_num += 1
         tr_model.saver.restore(sess, best_path)
         msg = ("ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) VAL AVG.LOSS %.4f,\n"
                "%s, ckpt(%s) saved,\nEPOCH DURATION: %.2fs") % (
@@ -338,8 +341,9 @@ def train():
       with open(os.path.join(NNET_PARAM.save_dir, 'train.log'), 'a+') as f:
         f.writelines(msg+'\n')
 
-      # Start halving when improvement is low
-      if rel_impr < NNET_PARAM.start_halving_impr:
+      # Start halving when improvement is lower than start_halving_impr
+      if (rel_impr < NNET_PARAM.start_halving_impr) or (reject_num >= 3):
+        reject_num = 0
         NNET_PARAM.learning_rate *= NNET_PARAM.halving_factor
         sess.run(tf.assign(tr_model.lr, NNET_PARAM.learning_rate))
 
