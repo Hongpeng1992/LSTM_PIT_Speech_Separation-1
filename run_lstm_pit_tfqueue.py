@@ -22,138 +22,8 @@ from FLAGS import MIXED_AISHELL_PARAM
 os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[1]
 
 
-def decode_one(sess, model, name, uttwave1, uttwave2=None):
-  if uttwave2 is None:
-    uttwave2 = np.array([0]*np.shape(uttwave2)[0])
-  mixed_wave = wav_tool._mix_wav(uttwave1, uttwave2)
-  x_spec = wav_tool._extract_norm_log_mag_spec(mixed_wave)
-  y_spec1 = wav_tool._extract_norm_log_mag_spec(uttwave1)
-  y_spec2 = wav_tool._extract_norm_log_mag_spec(uttwave2)
-
-  model.inputs = np.reshape(x_spec, [1, -1, np.shape(x_spec)[-1]])
-  cleaned1, cleaned2 = sess.run([model.cleaned1, model.cleaned2])
-  cleanedshape = np.shape(cleaned1)
-  cleaned1 = np.reshape(cleaned1, [cleanedshape[-2], cleanedshape[-1]])
-  cleaned2 = np.reshape(cleaned2, [cleanedshape[-2], cleanedshape[-1]])
-
-  # show the 5 data.(wav,spec,sound etc.)
-  x_spec = np.array(rmNormalization(x_spec))
-  cleaned1 = np.array(rmNormalization(cleaned1))
-  cleaned2 = np.array(rmNormalization(cleaned2))
-  y_spec1 = np.array(rmNormalization(y_spec1))
-  y_spec2 = np.array(rmNormalization(y_spec2))
-
-  decode_ans_dir = os.path.join(NNET_PARAM.save_dir, 'decode_ans')
-  if os.path.exists(decode_ans_dir):
-    shutil.rmtree(decode_ans_dir)
-  os.makedirs(decode_ans_dir)
-
-  # wav_spec(spectrum)
-  cleaned = np.concatenate([cleaned1, cleaned2], axis=-1)
-  y_spec = np.concatenate([y_spec1, y_spec2], axis=-1)
-  utils.spectrum_tool.picture_spec(np.log10(cleaned+0.001),
-                                   decode_ans_dir+'/restore_spec_'+name)
-  utils.spectrum_tool.picture_spec(np.log10(x_spec+0.001),
-                                   decode_ans_dir+'/mixed_spec_'+name)
-  if NNET_PARAM.decode_show_more:
-    utils.spectrum_tool.picture_spec(np.log10(y_spec+0.001),
-                                     decode_ans_dir+'/raw_spec_'+name)
-
-  x_angle = wav_tool._extract_phase(mixed_wave)
-  cleaned_spec1 = cleaned1 * np.exp(x_angle*1j)
-  cleaned_spec2 = cleaned2 * np.exp(x_angle*1j)
-  y_spec1 = y_spec1 * np.exp(x_angle*1j)
-  y_spec2 = y_spec2 * np.exp(x_angle*1j)
-  x_spec = x_spec * np.exp(x_angle*1j)
-
-  # for i in range(speech_num):
-  # write restore wave
-  reY1 = utils.spectrum_tool.librosa_istft(
-      cleaned_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-  reY2 = utils.spectrum_tool.librosa_istft(
-      cleaned_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-  reCONY = np.concatenate([reY1, reY2])
-  wavefile = wave.open(
-      decode_ans_dir+'/restore_audio_'+name+'.wav', 'wb')
-  nchannels = 1
-  sampwidth = 2  # 采样位宽，2表示16位
-  framerate = 16000
-  nframes = len(reCONY)
-  comptype = "NONE"
-  compname = "not compressed"
-  wavefile.setparams((nchannels, sampwidth, framerate, nframes,
-                      comptype, compname))
-  wavefile.writeframes(
-      np.array(reCONY, dtype=np.int16))
-
-  # write raw wave
-  if NNET_PARAM.decode_show_more:
-    rawY1 = utils.spectrum_tool.librosa_istft(
-        y_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-    rawY2 = utils.spectrum_tool.librosa_istft(
-        y_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-    rawCONY = np.concatenate([rawY1, rawY2])
-    wavefile = wave.open(
-        decode_ans_dir+'/raw_audio_'+name+'.wav', 'wb')
-    nframes = len(rawCONY)
-    wavefile.setparams((nchannels, sampwidth, framerate, nframes,
-                        comptype, compname))
-    wavefile.writeframes(
-        np.array(rawCONY, dtype=np.int16))
-
-  # write mixed wave
-  mixedWave = utils.spectrum_tool.librosa_istft(
-      x_spec.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-  wavefile = wave.open(
-      decode_ans_dir+'/mixed_audio_'+name+'.wav', 'wb')
-  nframes = len(mixedWave)
-  wavefile.setparams((nchannels, sampwidth, framerate, nframes,
-                      comptype, compname))
-  wavefile.writeframes(
-      np.array(mixedWave, dtype=np.int16))
-
-  # wav_pic(oscillograph)
-  utils.spectrum_tool.picture_wave(reCONY,
-                                   decode_ans_dir +
-                                   '/restore_wav_'+name,
-                                   16000)
-  if NNET_PARAM.decode_show_more:
-    utils.spectrum_tool.picture_wave(rawCONY,
-                                     decode_ans_dir +
-                                     '/raw_wav_' + name,
-                                     16000)
-
-
 def decode():
-  with tf.Graph().as_default():
-    with tf.name_scope('model'):
-      model = LSTM(None, None, None, None, infer=True)
-
-    init = tf.group(tf.global_variables_initializer(),
-                    tf.local_variables_initializer())
-
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.allow_soft_placement = True
-    sess = tf.Session()
-    sess.run(init)
-
-    ckpt = tf.train.get_checkpoint_state(NNET_PARAM.save_dir+'/nnet')
-    if ckpt and ckpt.model_checkpoint_path:
-      tf.logging.info("Restore from " + ckpt.model_checkpoint_path)
-      model.saver.restore(sess, ckpt.model_checkpoint_path)
-    else:
-      tf.logging.fatal("checkpoint not found.")
-      sys.exit(-1)
-
-  dataset_index_file = open('_decode_index/random_train.list', 'r')
-  dataset_index_strlist = dataset_index_file.readlines()
-  for i, index_str in enumerate(dataset_index_strlist):
-    uttdir1, uttdir2 = index_str.replace('\n', '').split(' ')
-    uttwave1, uttwave2 = wav_tool._get_waveData1_waveData2(uttdir1, uttdir2)
-    decode_one(sess, model, str(i), uttwave1, uttwave2)
-  sess.close()
-  tf.logging.info("Decoding done.")
+  tf.logging.info("Go to 'run_lstm_pit_tfdata.py'.")
 
 
 def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
@@ -281,7 +151,7 @@ def train():
       tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4FS  costime %d" %
                       (loss_prev, time.time()-start_time))
 
-      tr_model.assign_lr(sess,NNET_PARAM.learning_rate)
+      tr_model.assign_lr(sess, NNET_PARAM.learning_rate)
       reject_num = 0
       for epoch in range(NNET_PARAM.max_epochs):
         # sess.run([iter_train.initializer, iter_val.initializer])
@@ -339,7 +209,7 @@ def train():
         if (rel_impr < NNET_PARAM.start_halving_impr) or (reject_num >= 3):
           reject_num = 0
           NNET_PARAM.learning_rate *= NNET_PARAM.halving_factor
-          tr_model.assign_lr(sess,NNET_PARAM.learning_rate)
+          tr_model.assign_lr(sess, NNET_PARAM.learning_rate)
 
         # Stopping criterion
         if rel_impr < NNET_PARAM.end_halving_impr:

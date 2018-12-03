@@ -22,20 +22,7 @@ from FLAGS import MIXED_AISHELL_PARAM
 os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[1]
 
 
-def decode_one(sess, model, name, uttwave1, uttwave2=None):
-  if uttwave2 is None:
-    uttwave2 = np.array([0]*np.shape(uttwave2)[0])
-  mixed_wave = wav_tool._mix_wav(uttwave1, uttwave2)
-  x_spec = wav_tool._extract_norm_log_mag_spec(mixed_wave)
-  y_spec1 = wav_tool._extract_norm_log_mag_spec(uttwave1)
-  y_spec2 = wav_tool._extract_norm_log_mag_spec(uttwave2)
-
-  model.inputs = np.reshape(x_spec, [1, -1, np.shape(x_spec)[-1]])
-  cleaned1, cleaned2 = sess.run([model.cleaned1, model.cleaned2])
-  cleanedshape = np.shape(cleaned1)
-  cleaned1 = np.reshape(cleaned1, [cleanedshape[-2], cleanedshape[-1]])
-  cleaned2 = np.reshape(cleaned2, [cleanedshape[-2], cleanedshape[-1]])
-
+def show_onewave(testset_name, name, x_spec, x_angle, cleaned1, cleaned2, y_spec1, y_spec2):
   # show the 5 data.(wav,spec,sound etc.)
   x_spec = np.array(rmNormalization(x_spec))
   cleaned1 = np.array(rmNormalization(cleaned1))
@@ -43,7 +30,7 @@ def decode_one(sess, model, name, uttwave1, uttwave2=None):
   y_spec1 = np.array(rmNormalization(y_spec1))
   y_spec2 = np.array(rmNormalization(y_spec2))
 
-  decode_ans_dir = os.path.join(NNET_PARAM.save_dir, 'decode_ans')
+  decode_ans_dir = os.path.join(NNET_PARAM.save_dir, 'decode_ans', testset_name)
   if os.path.exists(decode_ans_dir):
     shutil.rmtree(decode_ans_dir)
   os.makedirs(decode_ans_dir)
@@ -59,7 +46,6 @@ def decode_one(sess, model, name, uttwave1, uttwave2=None):
     utils.spectrum_tool.picture_spec(np.log10(y_spec+0.001),
                                      decode_ans_dir+'/raw_spec_'+name)
 
-  x_angle = wav_tool._extract_phase(mixed_wave)
   cleaned_spec1 = cleaned1 * np.exp(x_angle*1j)
   cleaned_spec2 = cleaned2 * np.exp(x_angle*1j)
   y_spec1 = y_spec1 * np.exp(x_angle*1j)
@@ -124,10 +110,49 @@ def decode_one(sess, model, name, uttwave1, uttwave2=None):
                                      16000)
 
 
-def decode():
-  with tf.Graph().as_default():
+def decode_oneset(setname, set_index_list_dir):
+  dataset_index_file = open('_decode_index/random_train.list', 'r')
+  dataset_index_strlist = dataset_index_file.readlines()
+  if len(dataset_index_strlist) <= 0:
+    print('Set %s have no element.' % setname)
+    return
+  x_spec = []
+  y_spec1 = []
+  y_spec2 = []
+  lengths = []
+  mixed_wave = []
+  for i, index_str in enumerate(dataset_index_strlist):
+    uttdir1, uttdir2 = index_str.replace('\n', '').split(' ')
+    uttwave1, uttwave2 = wav_tool._get_waveData1_waveData2(uttdir1, uttdir2)
+    mixed_wave_t = wav_tool._mix_wav(uttwave1, uttwave2)
+    x_spec_t = wav_tool._extract_norm_log_mag_spec(mixed_wave)
+    y_spec1_t = wav_tool._extract_norm_log_mag_spec(uttwave1)
+    y_spec2_t = wav_tool._extract_norm_log_mag_spec(uttwave2)
+    mixed_wave.append(mixed_wave_t)
+    x_spec.append(x_spec_t)
+    y_spec1.append(y_spec1_t)
+    y_spec2.append(y_spec2_t)
+    lengths.append(np.shape(x_spec_t)[0])
+  mixed_wave = np.array(mixed_wave, dtype=np.float32)
+  x_spec = np.array(x_spec, dtype=np.float32)
+  y_spec1 = np.array(y_spec1, dtype=np.float32)
+  y_spec2 = np.array(y_spec2, dtype=np.float32)
+  lengths = np.array(lengths, dtype=np.float32)
+
+  g = tf.Graph()
+  with g.as_default():
+    with tf.device('/cpu:0'):
+      with tf.name_scope('input'):
+        dataset = tf.data.DataSet.from_tensor_slices(
+            x_spec, y_spec1, y_spec2, lengths)
+        dataset = dataset.batch(64)
+        dataset_iter = dataset.make_one_shot_iterator()
+        # dataset_iter = dataset.make_initializable_iterator()
+        x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr = dataset_iter.get_next()
+
     with tf.name_scope('model'):
-      model = LSTM(None, None, None, None, infer=True)
+      model = LSTM(x_batch_tr, y1_batch_tr, y2_batch_tr,
+                   lengths_batch_tr, infer=True)
 
     init = tf.group(tf.global_variables_initializer(),
                     tf.local_variables_initializer())
@@ -145,15 +170,23 @@ def decode():
     else:
       tf.logging.fatal("checkpoint not found.")
       sys.exit(-1)
+  g.finalize()
 
-  dataset_index_file = open('_decode_index/random_train.list', 'r')
-  dataset_index_strlist = dataset_index_file.readlines()
-  for i, index_str in enumerate(dataset_index_strlist):
-    uttdir1, uttdir2 = index_str.replace('\n', '').split(' ')
-    uttwave1, uttwave2 = wav_tool._get_waveData1_waveData2(uttdir1, uttdir2)
-    decode_one(sess, model, str(i), uttwave1, uttwave2)
+  cleaned1, cleaned2 = sess.run([model.cleaned1, model.cleaned2])
+  x_angle = wav_tool._extract_phase(mixed_wave)
+  decode_num = np.shape(x_spec)[0]
+  for i in range(decode_num):
+    show_onewave(setname, str(i), x_spec[i], x_angle[i],
+                 cleaned1[i], cleaned2[i], y_spec1[i], y_spec2[i])
   sess.close()
   tf.logging.info("Decoding done.")
+
+
+def decode():
+  set_list = os.listdir('_decode_index')
+  for list_file in set_list:
+    if list_file[-4:0] == 'list':
+      decode_oneset(list_file[:-4], os.path.join('_decode_index', list_file))
 
 
 def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
@@ -286,7 +319,7 @@ def train():
     tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4FS  costime %d" %
                     (loss_prev, time.time()-valstart_time))
 
-    tr_model.assign_lr(sess,NNET_PARAM.learning_rate)
+    tr_model.assign_lr(sess, NNET_PARAM.learning_rate)
     g.finalize()
 
     # epochs training
@@ -346,7 +379,7 @@ def train():
       if (rel_impr < NNET_PARAM.start_halving_impr) or (reject_num >= 3):
         reject_num = 0
         NNET_PARAM.learning_rate *= NNET_PARAM.halving_factor
-        tr_model.assign_lr(sess,NNET_PARAM.learning_rate)
+        tr_model.assign_lr(sess, NNET_PARAM.learning_rate)
 
       # Stopping criterion
       if rel_impr < NNET_PARAM.end_halving_impr:
