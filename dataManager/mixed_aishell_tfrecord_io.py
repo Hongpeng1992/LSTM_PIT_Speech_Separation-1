@@ -403,6 +403,7 @@ def get_batch_use_tfdata(tfrecords_list):
                                #  block_length=1,
                                num_parallel_calls=NNET_PARAM.num_threads_processing_data,
                                )
+  # region
   # !tf.data with tf.device(cpu) OOM???
   # dataset = dataset.map(
   #     map_func=parse_func,
@@ -413,7 +414,7 @@ def get_batch_use_tfdata(tfrecords_list):
   #                    [None, NNET_PARAM.output_size],
   #                    [None, NNET_PARAM.output_size],
   #                    []))
-
+  # endregion
   # !map_and_batch efficient is better than map+paded_batch
   dataset = dataset.apply(tf.data.experimental.map_and_batch(
       map_func=parse_func,
