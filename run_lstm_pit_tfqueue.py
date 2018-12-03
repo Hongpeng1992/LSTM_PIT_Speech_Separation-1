@@ -281,7 +281,7 @@ def train():
       tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4FS  costime %d" %
                       (loss_prev, time.time()-start_time))
 
-      sess.run(tf.assign(tr_model.lr, NNET_PARAM.learning_rate))
+      tr_model.assign_lr(sess,NNET_PARAM.learning_rate)
       reject_num = 0
       for epoch in range(NNET_PARAM.max_epochs):
         # sess.run([iter_train.initializer, iter_val.initializer])
@@ -339,7 +339,7 @@ def train():
         if (rel_impr < NNET_PARAM.start_halving_impr) or (reject_num >= 3):
           reject_num = 0
           NNET_PARAM.learning_rate *= NNET_PARAM.halving_factor
-          sess.run(tf.assign(tr_model.lr, NNET_PARAM.learning_rate))
+          tr_model.assign_lr(sess,NNET_PARAM.learning_rate)
 
         # Stopping criterion
         if rel_impr < NNET_PARAM.end_halving_impr:

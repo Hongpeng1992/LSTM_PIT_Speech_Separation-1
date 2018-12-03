@@ -25,7 +25,7 @@ class NNET_PARAM:
   max_epochs = 50  # Max number of epochs to run trainer totally.
   halving_factor = 0.7  # Factor for halving.
   start_halving_impr = 0.003 # Halving when ralative loss is lower than start_halving_impr.
-  end_halving_impr = 0.001  # Stop when relative loss is lower than end_halving_impr.
+  end_halving_impr = 0.0005  # Stop when relative loss is lower than end_halving_impr.
   num_threads_processing_data = 64  # The num of threads to read tfrecords files.
   save_dir = 'exp/lstm_pit'  # Directory to put the train result.
   keep_prob = 0.8  # Keep probability for training dropout.
