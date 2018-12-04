@@ -36,7 +36,7 @@ def magnitude_spectrum_librosa_stft(signal, NFFT, overlap):
   signal=np.array(signal,dtype=np.float)
   tmp = librosa.core.stft(signal,
                           n_fft=NFFT,
-                          hop_length=256,
+                          hop_length=overlap,
                           window=scipy.signal.windows.hann)
   tmp = np.absolute(tmp)
   return tmp.T
