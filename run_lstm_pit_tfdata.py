@@ -22,18 +22,13 @@ from FLAGS import MIXED_AISHELL_PARAM
 os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[1]
 
 
-def show_onewave(testset_name, name, x_spec, x_angle, cleaned1, cleaned2, y_spec1, y_spec2):
+def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_spec1, y_spec2):
   # show the 5 data.(wav,spec,sound etc.)
   x_spec = np.array(rmNormalization(x_spec))
   cleaned1 = np.array(rmNormalization(cleaned1))
   cleaned2 = np.array(rmNormalization(cleaned2))
   y_spec1 = np.array(rmNormalization(y_spec1))
   y_spec2 = np.array(rmNormalization(y_spec2))
-
-  decode_ans_dir = os.path.join(NNET_PARAM.save_dir, 'decode_ans', testset_name)
-  if os.path.exists(decode_ans_dir):
-    shutil.rmtree(decode_ans_dir)
-  os.makedirs(decode_ans_dir)
 
   # wav_spec(spectrum)
   cleaned = np.concatenate([cleaned1, cleaned2], axis=-1)
@@ -111,40 +106,45 @@ def show_onewave(testset_name, name, x_spec, x_angle, cleaned1, cleaned2, y_spec
 
 
 def decode_oneset(setname, set_index_list_dir):
-  dataset_index_file = open('_decode_index/random_train.list', 'r')
+  dataset_index_file = open(set_index_list_dir, 'r')
   dataset_index_strlist = dataset_index_file.readlines()
   if len(dataset_index_strlist) <= 0:
     print('Set %s have no element.' % setname)
     return
+  mixed_wave = []
   x_spec = []
   y_spec1 = []
   y_spec2 = []
   lengths = []
-  mixed_wave = []
+  x_theta = []
   for i, index_str in enumerate(dataset_index_strlist):
     uttdir1, uttdir2 = index_str.replace('\n', '').split(' ')
+    # print(uttdir1,uttdir2)
     uttwave1, uttwave2 = wav_tool._get_waveData1_waveData2(uttdir1, uttdir2)
     mixed_wave_t = wav_tool._mix_wav(uttwave1, uttwave2)
-    x_spec_t = wav_tool._extract_norm_log_mag_spec(mixed_wave)
+    x_spec_t = wav_tool._extract_norm_log_mag_spec(mixed_wave_t)
     y_spec1_t = wav_tool._extract_norm_log_mag_spec(uttwave1)
     y_spec2_t = wav_tool._extract_norm_log_mag_spec(uttwave2)
+    x_theta_t = wav_tool._extract_phase(mixed_wave_t)
     mixed_wave.append(mixed_wave_t)
     x_spec.append(x_spec_t)
     y_spec1.append(y_spec1_t)
     y_spec2.append(y_spec2_t)
+    x_theta.append(x_theta_t)
     lengths.append(np.shape(x_spec_t)[0])
   mixed_wave = np.array(mixed_wave, dtype=np.float32)
   x_spec = np.array(x_spec, dtype=np.float32)
   y_spec1 = np.array(y_spec1, dtype=np.float32)
   y_spec2 = np.array(y_spec2, dtype=np.float32)
-  lengths = np.array(lengths, dtype=np.float32)
+  lengths = np.array(lengths, dtype=np.int32)
+  x_theta = np.array(x_theta, dtype=np.float32)
 
   g = tf.Graph()
   with g.as_default():
     with tf.device('/cpu:0'):
       with tf.name_scope('input'):
-        dataset = tf.data.DataSet.from_tensor_slices(
-            x_spec, y_spec1, y_spec2, lengths)
+        dataset = tf.data.Dataset.from_tensor_slices(
+            (x_spec, y_spec1, y_spec2, lengths))
         dataset = dataset.batch(64)
         dataset_iter = dataset.make_one_shot_iterator()
         # dataset_iter = dataset.make_initializable_iterator()
@@ -173,10 +173,14 @@ def decode_oneset(setname, set_index_list_dir):
   g.finalize()
 
   cleaned1, cleaned2 = sess.run([model.cleaned1, model.cleaned2])
-  x_angle = wav_tool._extract_phase(mixed_wave)
   decode_num = np.shape(x_spec)[0]
+  decode_ans_dir = os.path.join(
+      NNET_PARAM.save_dir, 'decode_ans', setname)
+  if os.path.exists(decode_ans_dir):
+    shutil.rmtree(decode_ans_dir)
+  os.makedirs(decode_ans_dir)
   for i in range(decode_num):
-    show_onewave(setname, str(i), x_spec[i], x_angle[i],
+    show_onewave(decode_ans_dir, str(i), x_spec[i], x_theta[i],
                  cleaned1[i], cleaned2[i], y_spec1[i], y_spec2[i])
   sess.close()
   tf.logging.info("Decoding done.")
@@ -185,8 +189,9 @@ def decode_oneset(setname, set_index_list_dir):
 def decode():
   set_list = os.listdir('_decode_index')
   for list_file in set_list:
-    if list_file[-4:0] == 'list':
-      decode_oneset(list_file[:-4], os.path.join('_decode_index', list_file))
+    if list_file[-4:] == 'list':
+      # print(list_file)
+      decode_oneset(list_file[:-5], os.path.join('_decode_index', list_file))
 
 
 def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
@@ -368,7 +373,7 @@ def train():
         reject_num += 1
         tr_model.saver.restore(sess, best_path)
         msg = ("ITERATION %03d: TRAIN AVG.LOSS %.4f, (lrate%e) VAL AVG.LOSS %.4f,\n"
-               "%s, ckpt(%s) saved,\nEPOCH DURATION: %.2fs") % (
+               "%s, ckpt(%s) abandoned,\nEPOCH DURATION: %.2fs") % (
             epoch + 1, tr_loss, NNET_PARAM.learning_rate, val_loss,
             "NNET Rejected", ckpt_name, end_time - start_time)
         tf.logging.info(msg)
