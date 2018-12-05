@@ -66,12 +66,12 @@
 
 <tr align="left">
 <th>final_train_loss</th><td>3.1817</td>
-<td>4.1797</td><td>7.7716</td><td>=</td><td>7.5969</td><td>=</td><td>3.8880(1.1664)</td>
+<td>4.1797</td><td>7.7716</td><td>=</td><td>7.5969</td><td>3.0427(0.9128)</td><td>3.8880(1.1664)</td>
 </tr>
 
 <tr align="left">
 <th>final_validation_loss</th><td>5.0099</td>
-<td>6.2518</td><td>7.9592</td><td>=</td><td>7.7481</td><td>=</td><td>3.9229(1.1769)</td>
+<td>6.2518</td><td>7.9592</td><td>=</td><td>7.7481</td><td>3.0610(0.9183)</td><td>3.9230(1.1769)</td>
 </tr>
 
 <tr align="left">
