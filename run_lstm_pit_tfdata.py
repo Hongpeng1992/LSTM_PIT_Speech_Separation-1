@@ -6,7 +6,6 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
-from models.lstm_pit import LSTM
 import utils
 import utils.tf_tool
 import wave
@@ -20,6 +19,10 @@ from FLAGS import MIXED_AISHELL_PARAM
 
 
 os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[1]
+if NNET_PARAM.USE_MULTIGPU is True:
+  from models.lstm_pit_multiGPU import LSTM
+else:
+  from models.lstm_pit import LSTM
 
 
 def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_spec1, y_spec2):
@@ -53,7 +56,7 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_sp
       cleaned_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
   reY2 = utils.spectrum_tool.librosa_istft(
       cleaned_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
-  #norm resotred wave
+  # norm resotred wave
   reY1 = reY1/np.max(np.abs(reY1)) * 32767
   reY2 = reY2/np.max(np.abs(reY2)) * 32767
   reCONY = np.concatenate([reY1, reY2])
@@ -163,10 +166,11 @@ def decode_oneset(setname, set_index_list_dir, ckpt_dir='nnet'):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
-    sess = tf.Session()
+    sess = tf.Session(config=config)
     sess.run(init)
 
-    ckpt = tf.train.get_checkpoint_state(os.path.join(NNET_PARAM.save_dir,ckpt_dir))
+    ckpt = tf.train.get_checkpoint_state(
+        os.path.join(NNET_PARAM.save_dir, ckpt_dir))
     if ckpt and ckpt.model_checkpoint_path:
       tf.logging.info("Restore from " + ckpt.model_checkpoint_path)
       model.saver.restore(sess, ckpt.model_checkpoint_path)
@@ -194,7 +198,8 @@ def decode():
   for list_file in set_list:
     if list_file[-4:] == 'list':
       # print(list_file)
-      decode_oneset(list_file[:-5], os.path.join('_decode_index', list_file),ckpt_dir='nnet')
+      decode_oneset(
+          list_file[:-5], os.path.join('_decode_index', list_file), ckpt_dir='nnet')
 
 
 def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
