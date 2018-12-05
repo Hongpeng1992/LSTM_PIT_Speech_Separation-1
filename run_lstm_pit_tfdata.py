@@ -53,6 +53,9 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_sp
       cleaned_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
   reY2 = utils.spectrum_tool.librosa_istft(
       cleaned_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+  #norm resotred wave
+  reY1 = reY1/np.max(np.abs(reY1)) * 32767
+  reY2 = reY2/np.max(np.abs(reY2)) * 32767
   reCONY = np.concatenate([reY1, reY2])
   wavefile = wave.open(
       decode_ans_dir+'/restore_audio_'+name+'.wav', 'wb')
@@ -105,7 +108,7 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_sp
                                      16000)
 
 
-def decode_oneset(setname, set_index_list_dir):
+def decode_oneset(setname, set_index_list_dir, ckpt_dir='nnet'):
   dataset_index_file = open(set_index_list_dir, 'r')
   dataset_index_strlist = dataset_index_file.readlines()
   if len(dataset_index_strlist) <= 0:
@@ -163,7 +166,7 @@ def decode_oneset(setname, set_index_list_dir):
     sess = tf.Session()
     sess.run(init)
 
-    ckpt = tf.train.get_checkpoint_state(NNET_PARAM.save_dir+'/nnet')
+    ckpt = tf.train.get_checkpoint_state(os.path.join(NNET_PARAM.save_dir,ckpt_dir))
     if ckpt and ckpt.model_checkpoint_path:
       tf.logging.info("Restore from " + ckpt.model_checkpoint_path)
       model.saver.restore(sess, ckpt.model_checkpoint_path)
@@ -191,7 +194,7 @@ def decode():
   for list_file in set_list:
     if list_file[-4:] == 'list':
       # print(list_file)
-      decode_oneset(list_file[:-5], os.path.join('_decode_index', list_file))
+      decode_oneset(list_file[:-5], os.path.join('_decode_index', list_file),ckpt_dir='nnet')
 
 
 def train_one_epoch(sess, tr_model, i_epoch, run_metadata):
