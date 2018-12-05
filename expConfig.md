@@ -21,7 +21,7 @@
 </tr>
 
 <tr align="left"><th>rnn_layers_num</th>
-<td>2</td><td></td><td>3</td><td>2</td><td></td><td></td><td></td>
+<td>2</td><td></td><td>3</td><td>2</td><td>3</td><td></td><td></td>
 </tr>
 
 <tr align="left"><th>batch_size</th>
