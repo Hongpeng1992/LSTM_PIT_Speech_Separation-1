@@ -6,7 +6,7 @@ class NNET_PARAM:
   wav_pic is oscillograph.
   wav_spec is spectrum
   '''
-  decode = 0
+  decode = 1
   '''
   @decode_show_more
   Flag indicating show  (label_wav, label_wav_spec, label_wav_pic) or not.
@@ -16,6 +16,7 @@ class NNET_PARAM:
   decode_show_more = 1
   # Flag indicating whether to resume training from cptk.
   resume_training = 'false'
+  start_epoch = 0
   input_size = 257  # The dimension of input.
   output_size = 257  # The dimension of output per speaker.
   rnn_size = 496  # Number of rnn units to use.
@@ -96,7 +97,7 @@ class MIXED_AISHELL_PARAM:
 
   # WAVE_NORM=True
   WAVE_NORM = False
-  LOG_NORM_MAX = 5
+  LOG_NORM_MAX = 7
   LOG_NORM_MIN = -3
   NFFT = 512
   OVERLAP = 256

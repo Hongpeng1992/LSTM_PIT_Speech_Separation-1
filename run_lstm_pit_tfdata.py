@@ -340,7 +340,7 @@ def train():
 
     # epochs training
     reject_num = 0
-    for epoch in range(NNET_PARAM.max_epochs):
+    for epoch in range(NNET_PARAM.start_epoch, NNET_PARAM.max_epochs):
       sess.run([iter_train.initializer, iter_val.initializer])
       start_time = time.time()
 
