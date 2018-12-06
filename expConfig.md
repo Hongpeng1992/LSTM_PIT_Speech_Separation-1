@@ -162,7 +162,7 @@
 <td></td>
 </tr>
 
-<tr align="left"><th colspan='120'>表中留空位置的值表示该参数与其前面的实验参数相同，“=”表示实验尚未得出结果或未进行该实验。<br>
+<tr align="left"><th colspan='120'>表中留空位置表示该参数与其前面的实验参数相同，“=”表示实验尚未得出结果或未进行该实验。<br>
 wav_norm: Normlize wav's volume before mixing. Both input and label are normlized.<br>
 wav_AMP: Normlize label wav's volume, mixed wav is not normlized. Just label are normlized.<br>
 spec_AMP: Normlize label spec's mag, mixed wav's spec is not normlized. Just label are normlized.<br>
