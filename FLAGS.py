@@ -1,3 +1,6 @@
+import tensorflow as tf
+
+
 class NNET_PARAM:
   '''
   @decode
@@ -36,6 +39,7 @@ class NNET_PARAM:
   keep_prob = 0.8  # Keep probability for training dropout.
   max_grad_norm = 5.0  # The max gradient normalization.
   model_type = 'BLSTM'  # BLSTM or LSTM
+  LSTM_ACTIVATION = tf.tanh
 
   GPU_RAM_ALLOW_GROWTH = True
   USE_MULTIGPU = False
@@ -60,7 +64,7 @@ class MIXED_AISHELL_PARAM:
   DATA_DICT_DIR = '_data/mixed_aishell'
   GENERATE_TFRECORD = False
   PROCESS_NUM_GENERATE_TFERCORD = 64
-  SHUFFLE=False
+  SHUFFLE = False
 
   '''
   TFRECORDS_DIR='/big-data/tmplhf/pit-data/feature_tfrecords_utt03s'

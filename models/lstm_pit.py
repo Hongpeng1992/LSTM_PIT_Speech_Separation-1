@@ -68,7 +68,7 @@ class LSTM(object):
       return tf.contrib.rnn.LSTMCell(
           config.rnn_size, forget_bias=1.0, use_peepholes=True,
           initializer=tf.contrib.layers.xavier_initializer(),
-          state_is_tuple=True, activation=tf.tanh)
+          state_is_tuple=True, activation=config.LSTM_ACTIVATION)
     attn_cell = lstm_cell
     if not infer and config.keep_prob < 1.0:
       def attn_cell():
