@@ -101,7 +101,7 @@ class LSTM(object):
         outputs, state = tf.nn.dynamic_rnn(
             cell, outputs,
             dtype=tf.float32,
-            sequence_length=tf.cast(self._lengths,tf.int32),
+            sequence_length=tf.cast(self._lengths, tf.int32),
             initial_state=self.initial_state)
         self._final_state = state
 
@@ -136,6 +136,10 @@ class LSTM(object):
     if infer:
       return
 
+    if config.MASK_TYPE == 'PSM':
+      pass # TODO
+      # self._labels1 *= tf.cos(theta_mixed-theta_labels1)
+      # self._labels2 *= tf.cos(theta_mixed-theta_labels2)
     self._loss = utt_PIT_MSE_for_LSTM(self._cleaned1,
                                       self._cleaned2,
                                       self._labels1,

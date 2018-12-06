@@ -40,6 +40,9 @@ class NNET_PARAM:
   max_grad_norm = 5.0  # The max gradient normalization.
   model_type = 'BLSTM'  # BLSTM or LSTM
   LSTM_ACTIVATION = tf.tanh
+  # LSTM_ACTIVATION = tf.nn.softmax
+  MASK_TYPE='IAM'# IAM: ideal_amplitude_mask; PSM: phase_sensitive_mask.
+  # MASK_TYPE='PSM'
 
   GPU_RAM_ALLOW_GROWTH = True
   USE_MULTIGPU = False # dont't use multiGPU,because it is not work now...
