@@ -4,8 +4,8 @@
 <td>C1</td><td>C2</td><td>C3</td><td>C4</td><td>C5</td><td>C6</td><td>C7</td><td>C8</td><td>C9</td><td>C10</td>
 </tr>
 
-<tr align="left"><th>wav_mag_normalize</th>
-<td>No</td><td>Yes</td><td></td><td>No</td><td>Yes</td><td>No</td><td></td><td></td><td></td><td></td>
+<tr align="left"><th>volume_normalize</th>
+<td>No</td><td>wav_norm</td><td></td><td>No</td><td>wav_norm</td><td>No</td><td></td><td></td><td></td><td></td><td>wav_norm</td><td>wav_AMP</td><td>spec_AMP</td>
 </tr>
 
 <tr align="left"><th>log_spec_trunc</th>
@@ -114,6 +114,10 @@
 <td>10S</td><td></td><td></td><td></td><td></td><td>3S</td><td></td><td></td><td></td><td></td>
 </tr>
 
-<tr align="left"><th colspan='11'>表中留空位置的值表示该参数与其前面的实验参数相同，“=”表示实验尚未得出结果或未进行该实验。</th>
+<tr align="left"><th colspan='11'>表中留空位置的值表示该参数与其前面的实验参数相同，“=”表示实验尚未得出结果或未进行该实验。<br>
+wav_norm: Normlize wav's volume before mixing. Both input and label are normlized.
+wav_AMP: Normlize label wav's volume, mixed wav is not normlized. Just label are normlized.
+spec_AMP: Normlize label spec's mag, mixed wav's spec is not normlized. Just label are normlized.
+</th>
 </tr>
 </table>
