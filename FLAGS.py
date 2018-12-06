@@ -42,7 +42,7 @@ class NNET_PARAM:
   LSTM_ACTIVATION = tf.tanh
 
   GPU_RAM_ALLOW_GROWTH = True
-  USE_MULTIGPU = False
+  USE_MULTIGPU = False # dont't use multiGPU,because it is not work now...
   GPU_LIST = [0, 2]
   if USE_MULTIGPU:
     if batch_size % len(GPU_LIST) == 0:
