@@ -393,18 +393,22 @@ def generate_tfrecord(gen=True):
 
 def get_batch_use_tfdata(tfrecords_list):
   files = tf.data.Dataset.list_files(tfrecords_list)
-  if MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'big':
+  if MIXED_AISHELL_PARAM.SHUFFLE:
+    files = files.shuffle(MIXED_AISHELL_PARAM.PROCESS_NUM_GENERATE_TFERCORD)
+  if MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'big' and (not MIXED_AISHELL_PARAM.SHUFFLE):
     dataset = files.interleave(tf.data.TFRecordDataset,
                                cycle_length=1,
                                block_length=NNET_PARAM.batch_size,
                                #  num_parallel_calls=1,
                                )
-  elif MIXED_AISHELL_PARAM.TFRECORDS_FILE_TYPE == 'small':
+  else:  # small tfrecord or shuffle
     dataset = files.interleave(tf.data.TFRecordDataset,
-                               cycle_length=NNET_PARAM.batch_size,
+                               cycle_length=NNET_PARAM.batch_size*3,
                                #  block_length=1,
                                num_parallel_calls=NNET_PARAM.num_threads_processing_data,
                                )
+  if MIXED_AISHELL_PARAM.SHUFFLE:
+    dataset=dataset.shuffle(NNET_PARAM.batch_size*3)
   # region
   # !tf.data with tf.device(cpu) OOM???
   # dataset = dataset.map(

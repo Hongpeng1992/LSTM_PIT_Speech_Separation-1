@@ -60,6 +60,7 @@ class MIXED_AISHELL_PARAM:
   DATA_DICT_DIR = '_data/mixed_aishell'
   GENERATE_TFRECORD = False
   PROCESS_NUM_GENERATE_TFERCORD = 64
+  SHUFFLE=False
 
   '''
   TFRECORDS_DIR='/big-data/tmplhf/pit-data/feature_tfrecords_utt03s'
