@@ -30,6 +30,9 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_sp
   x_spec = np.array(rmNormalization(x_spec))
   cleaned1 = np.array(rmNormalization(cleaned1))
   cleaned2 = np.array(rmNormalization(cleaned2))
+  # 去噪阈值 #TODO
+  # cleaned1 = np.where(cleaned1 > 100, cleaned1, 0)
+  # cleaned2 = np.where(cleaned2 > 100, cleaned2, 0)
   y_spec1 = np.array(rmNormalization(y_spec1))
   y_spec2 = np.array(rmNormalization(y_spec2))
 
@@ -199,7 +202,7 @@ def decode():
     if list_file[-4:] == 'list':
       # print(list_file)
       decode_oneset(
-          list_file[:-5], os.path.join('_decode_index', list_file), ckpt_dir='nnet')
+          list_file[:-5], os.path.join('_decode_index', list_file), ckpt_dir='nnet_C06')
 
 
 def train_one_epoch(sess, tr_model, i_epoch, run_metadata):

@@ -182,6 +182,8 @@ def _extract_norm_log_mag_spec(data):
       data, NFFT, OVERLAP)
   # Normalization
   log_mag_spec = np.log10(mag_spec+0.5)
+  # #TODO
+  # print('???', np.max(log_mag_spec), np.min(log_mag_spec))
   log_mag_spec[log_mag_spec > LOG_NORM_MAX] = LOG_NORM_MAX
   log_mag_spec[log_mag_spec < LOG_NORM_MIN] = LOG_NORM_MIN
   log_mag_spec += np.abs(LOG_NORM_MIN)
