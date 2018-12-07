@@ -25,16 +25,21 @@ else:
   from models.lstm_pit import LSTM
 
 
-def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_spec1, y_spec2):
+def show_onewave(decode_ans_dir, name, x_spec, x_angle, y1_angle, y2_angle, cleaned1, cleaned2, y_spec1, y_spec2):
   # show the 5 data.(wav,spec,sound etc.)
   x_spec = np.array(rmNormalization(x_spec))
   cleaned1 = np.array(rmNormalization(cleaned1))
   cleaned2 = np.array(rmNormalization(cleaned2))
   # 去噪阈值 #TODO
-  # cleaned1 = np.where(cleaned1 > 100, cleaned1, 0)
-  # cleaned2 = np.where(cleaned2 > 100, cleaned2, 0)
+  # cleaned1 = np.where(cleaned1 > 300, cleaned1, cleaned1/10)
+  # cleaned2 = np.where(cleaned2 > 300, cleaned2, cleaned2/10)
   y_spec1 = np.array(rmNormalization(y_spec1))
   y_spec2 = np.array(rmNormalization(y_spec2))
+
+  # speaker tracing by MSE
+  if NNET_PARAM.decode_speaker_tracing:
+    if np.mean((y_spec1-cleaned1)**2 + (y_spec1-cleaned2)**2) > np.mean((y_spec1-cleaned2)**2 + (y_spec1-cleaned1)**2):
+      cleaned1, cleaned2 = cleaned2, cleaned1
 
   # wav_spec(spectrum)
   cleaned = np.concatenate([cleaned1, cleaned2], axis=-1)
@@ -47,10 +52,10 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_sp
     utils.spectrum_tool.picture_spec(np.log10(y_spec+0.001),
                                      decode_ans_dir+'/raw_spec_'+name)
 
-  cleaned_spec1 = cleaned1 * np.exp(x_angle*1j)
-  cleaned_spec2 = cleaned2 * np.exp(x_angle*1j)
-  y_spec1 = y_spec1 * np.exp(x_angle*1j)
-  y_spec2 = y_spec2 * np.exp(x_angle*1j)
+  cleaned_spec1 = cleaned1 * np.exp(y1_angle*1j)
+  cleaned_spec2 = cleaned2 * np.exp(y2_angle*1j)
+  y_spec1 = y_spec1 * np.exp(y1_angle*1j)
+  y_spec2 = y_spec2 * np.exp(y2_angle*1j)
   x_spec = x_spec * np.exp(x_angle*1j)
 
   # for i in range(speech_num):
@@ -60,8 +65,9 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, cleaned1, cleaned2, y_sp
   reY2 = utils.spectrum_tool.librosa_istft(
       cleaned_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
   # norm resotred wave
-  reY1 = reY1/np.max(np.abs(reY1)) * 32767
-  reY2 = reY2/np.max(np.abs(reY2)) * 32767
+  if NNET_PARAM.decode_output_norm_speaker_volume:
+    reY1 = reY1/np.max(np.abs(reY1)) * 32767
+    reY2 = reY2/np.max(np.abs(reY2)) * 32767
   reCONY = np.concatenate([reY1, reY2])
   wavefile = wave.open(
       decode_ans_dir+'/restore_audio_'+name+'.wav', 'wb')
@@ -126,20 +132,29 @@ def decode_oneset(setname, set_index_list_dir, ckpt_dir='nnet'):
   y_spec2 = []
   lengths = []
   x_theta = []
+  y1_theta = []
+  y2_theta = []
   for i, index_str in enumerate(dataset_index_strlist):
     uttdir1, uttdir2 = index_str.replace('\n', '').split(' ')
     # print(uttdir1,uttdir2)
     uttwave1, uttwave2 = wav_tool._get_waveData1_waveData2(uttdir1, uttdir2)
+    if NNET_PARAM.decode_input_norm_speaker_volume:
+      uttwave1 = uttwave1/np.max(np.abs(uttwave1)) * int(32767*0.8)
+      uttwave2 = uttwave2/np.max(np.abs(uttwave2)) * 32767
     mixed_wave_t = wav_tool._mix_wav(uttwave1, uttwave2)
     x_spec_t = wav_tool._extract_norm_log_mag_spec(mixed_wave_t)
     y_spec1_t = wav_tool._extract_norm_log_mag_spec(uttwave1)
     y_spec2_t = wav_tool._extract_norm_log_mag_spec(uttwave2)
     x_theta_t = wav_tool._extract_phase(mixed_wave_t)
+    y1_theta_t = wav_tool._extract_phase(uttwave1)
+    y2_theta_t = wav_tool._extract_phase(uttwave2)
     mixed_wave.append(mixed_wave_t)
     x_spec.append(x_spec_t)
     y_spec1.append(y_spec1_t)
     y_spec2.append(y_spec2_t)
     x_theta.append(x_theta_t)
+    y1_theta.append(y1_theta_t)
+    y2_theta.append(y2_theta_t)
     lengths.append(np.shape(x_spec_t)[0])
   mixed_wave = np.array(mixed_wave, dtype=np.float32)
   x_spec = np.array(x_spec, dtype=np.float32)
@@ -147,6 +162,8 @@ def decode_oneset(setname, set_index_list_dir, ckpt_dir='nnet'):
   y_spec2 = np.array(y_spec2, dtype=np.float32)
   lengths = np.array(lengths, dtype=np.int32)
   x_theta = np.array(x_theta, dtype=np.float32)
+  y1_theta = np.array(y1_theta, dtype=np.float32)
+  y2_theta = np.array(y2_theta, dtype=np.float32)
 
   g = tf.Graph()
   with g.as_default():
@@ -190,7 +207,7 @@ def decode_oneset(setname, set_index_list_dir, ckpt_dir='nnet'):
     shutil.rmtree(decode_ans_dir)
   os.makedirs(decode_ans_dir)
   for i in range(decode_num):
-    show_onewave(decode_ans_dir, str(i), x_spec[i], x_theta[i],
+    show_onewave(decode_ans_dir, str(i), x_spec[i], x_theta[i], y1_theta[i], y2_theta[i],
                  cleaned1[i], cleaned2[i], y_spec1[i], y_spec2[i])
   sess.close()
   tf.logging.info("Decoding done.")
@@ -332,7 +349,7 @@ def train():
     loss_prev = eval_one_epoch(sess,
                                val_model,
                                run_metadata)
-    tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4FS  costime %d" %
+    tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4F  costime %dS" %
                     (loss_prev, time.time()-valstart_time))
 
     tr_model.assign_lr(sess, NNET_PARAM.learning_rate)
