@@ -80,7 +80,7 @@ class MIXED_AISHELL_PARAM:
   DATASET_NAMES = ['train', 'validation', 'test_cc']
   DATASET_SIZES = [1400000, 18000, 180000]
   '''
-  # TFRECORDS_DIR = '/workspace/work/alldata/pit-data/feature_tfrecords_utt03s_big' # for docker
+  # TFRECORDS_DIR = '/workspace/alldata/pit-data/feature_tfrecords_utt03s_big' # for docker
   TFRECORDS_DIR = '/ntfs/tmplhf/pit-data/feature_tfrecords_utt03s_big'
   # 'big' or 'small'.if 'small', one file per record.
   TFRECORDS_FILE_TYPE = 'big'
