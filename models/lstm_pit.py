@@ -36,15 +36,14 @@ class LSTM(object):
   """
 
   def __init__(self, inputs_batch, label1_batch, label2_batch, lengths_batch, infer=False):
-    # tf.data out node with cpu is faster.
-    with tf.device('/cpu:0'):
-      self._inputs = inputs_batch
-      self._mixed = self._inputs
+    # with tf.device('/cpu:0'):
+    self._inputs = inputs_batch
+    self._mixed = self._inputs
 
-      self._labels1 = label1_batch
-      self._labels2 = label2_batch
+    self._labels1 = label1_batch
+    self._labels2 = label2_batch
 
-      self._lengths = lengths_batch
+    self._lengths = lengths_batch
 
     self.batch_size = tf.shape(self._lengths)[0]
 
