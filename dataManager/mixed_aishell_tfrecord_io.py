@@ -408,7 +408,7 @@ def get_batch_use_tfdata(tfrecords_list):
                                num_parallel_calls=NNET_PARAM.num_threads_processing_data,
                                )
   if MIXED_AISHELL_PARAM.SHUFFLE:
-    dataset=dataset.shuffle(NNET_PARAM.batch_size*3)
+    dataset = dataset.shuffle(NNET_PARAM.batch_size*3)
   # region
   # !tf.data with tf.device(cpu) OOM???
   # dataset = dataset.map(
@@ -425,10 +425,10 @@ def get_batch_use_tfdata(tfrecords_list):
   dataset = dataset.apply(tf.data.experimental.map_and_batch(
       map_func=parse_func,
       batch_size=NNET_PARAM.batch_size,
-      num_parallel_calls=64,
+      num_parallel_calls=NNET_PARAM.num_threads_processing_data,
       # num_parallel_batches=2,
   ))
-  dataset = dataset.prefetch(buffer_size=NNET_PARAM.batch_size)
+  # dataset = dataset.prefetch(buffer_size=NNET_PARAM.batch_size) # perfetch 太耗内存，并没有明显的速度提升
   dataset_iter = dataset.make_initializable_iterator()
   x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr = dataset_iter.get_next()
   return x_batch_tr, y1_batch_tr, y2_batch_tr, lengths_batch_tr, dataset_iter
