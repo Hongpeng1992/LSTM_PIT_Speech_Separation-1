@@ -9,7 +9,7 @@ class NNET_PARAM:
   wav_pic is oscillograph.
   wav_spec is spectrum
   '''
-  decode = 0
+  decode = 1
   '''
   @decode_show_more
   Flag indicating show  (label_wav, label_wav_spec, label_wav_pic) or not.
@@ -44,11 +44,11 @@ class NNET_PARAM:
   model_type = 'BLSTM'  # BLSTM or LSTM
   LSTM_ACTIVATION = tf.nn.tanh
   # LSTM_ACTIVATION = tf.nn.softmax
-  MASK_TYPE='IAM'# IAM: ideal_amplitude_mask; PSM: phase_sensitive_mask.
+  MASK_TYPE = 'IAM'  # IAM: ideal_amplitude_mask; PSM: phase_sensitive_mask.
   # MASK_TYPE='PSM'
 
   GPU_RAM_ALLOW_GROWTH = True
-  USE_MULTIGPU = False # dont't use multiGPU,because it is not work now...
+  USE_MULTIGPU = False  # dont't use multiGPU,because it is not work now...
   GPU_LIST = [0, 2]
   if USE_MULTIGPU:
     if batch_size % len(GPU_LIST) == 0:
@@ -62,6 +62,8 @@ class NNET_PARAM:
   # generate timeline file. # !!! timeling is not work now, so set it false unless to test it.
   time_line = False
   timeline_type = 'minibatch'  # timeline write method. 'epoch' ro 'minibatch'
+  RESTORE_PHASE = 'GRIFFIN_LIM'  # 'MIXED','CLEANED','GRIFFIN_LIM'
+  GRIFFIN_ITERNUM = 100
 
 
 class MIXED_AISHELL_PARAM:

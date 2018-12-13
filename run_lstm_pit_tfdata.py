@@ -54,16 +54,29 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, y1_angle, y2_angle, clea
 
   cleaned_spec1 = cleaned1 * np.exp(y1_angle*1j)
   cleaned_spec2 = cleaned2 * np.exp(y2_angle*1j)
-  y_spec1 = y_spec1 * np.exp(y1_angle*1j)
-  y_spec2 = y_spec2 * np.exp(y2_angle*1j)
+  if NNET_PARAM.RESTORE_PHASE == 'RAW':
+    y_spec1 = y_spec1 * np.exp(y1_angle*1j)
+    y_spec2 = y_spec2 * np.exp(y2_angle*1j)
+  elif NNET_PARAM.RESTORE_PHASE == 'MIXED':
+    y_spec1 = y_spec1 * np.exp(x_angle*1j)
+    y_spec2 = y_spec2 * np.exp(x_angle*1j)
+  elif NNET_PARAM.RESTORE_PHASE == 'GRIFFIN_LIM':
+    y_spec1 = utils.spectrum_tool.griffin_lim(y_spec1.T,
+                                              MIXED_AISHELL_PARAM.NFFT,
+                                              MIXED_AISHELL_PARAM.OVERLAP,
+                                              NNET_PARAM.GRIFFIN_ITERNUM)
+    y_spec2 = utils.spectrum_tool.griffin_lim(y_spec2.T,
+                                              MIXED_AISHELL_PARAM.NFFT,
+                                              MIXED_AISHELL_PARAM.OVERLAP,
+                                              NNET_PARAM.GRIFFIN_ITERNUM)
   x_spec = x_spec * np.exp(x_angle*1j)
 
   # for i in range(speech_num):
   # write restore wave
   reY1 = utils.spectrum_tool.librosa_istft(
-      cleaned_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+      cleaned_spec1.T, MIXED_AISHELL_PARAM.NFFT, MIXED_AISHELL_PARAM.OVERLAP)
   reY2 = utils.spectrum_tool.librosa_istft(
-      cleaned_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+      cleaned_spec2.T, MIXED_AISHELL_PARAM.NFFT, MIXED_AISHELL_PARAM.OVERLAP)
   # norm resotred wave
   if NNET_PARAM.decode_output_norm_speaker_volume:
     reY1 = reY1/np.max(np.abs(reY1)) * 32767
@@ -85,9 +98,9 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, y1_angle, y2_angle, clea
   # write raw wave
   if NNET_PARAM.decode_show_more:
     rawY1 = utils.spectrum_tool.librosa_istft(
-        y_spec1.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+        y_spec1.T, MIXED_AISHELL_PARAM.NFFT, MIXED_AISHELL_PARAM.OVERLAP)
     rawY2 = utils.spectrum_tool.librosa_istft(
-        y_spec2.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+        y_spec2.T, MIXED_AISHELL_PARAM.NFFT, MIXED_AISHELL_PARAM.OVERLAP)
     rawCONY = np.concatenate([rawY1, rawY2])
     wavefile = wave.open(
         decode_ans_dir+'/raw_audio_'+name+'.wav', 'wb')
@@ -99,7 +112,7 @@ def show_onewave(decode_ans_dir, name, x_spec, x_angle, y1_angle, y2_angle, clea
 
   # write mixed wave
   mixedWave = utils.spectrum_tool.librosa_istft(
-      x_spec.T, (NNET_PARAM.input_size-1)*2, NNET_PARAM.input_size-1)
+      x_spec.T, MIXED_AISHELL_PARAM.NFFT, MIXED_AISHELL_PARAM.OVERLAP)
   wavefile = wave.open(
       decode_ans_dir+'/mixed_audio_'+name+'.wav', 'wb')
   nframes = len(mixedWave)
@@ -316,7 +329,7 @@ def train():
                     tf.local_variables_initializer())
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = NNET_PARAM.GPU_RAM_ALLOW_GROWTH
-    config.allow_soft_placement = True
+    config.allow_soft_placement = False
     sess = tf.Session(config=config)
     sess.run(init)
 

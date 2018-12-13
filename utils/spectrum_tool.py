@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
 
-def picture_spec(spec,name):
+def picture_spec(spec, name):
   # for i in range(np.shape(spec)[0]):
     # spec_t=spec[i]
-  spec_t=spec
+  spec_t = spec
   plt.pcolormesh(spec_t,)
   plt.title('STFT Magnitude')
   plt.xlabel('Frequency')
@@ -19,8 +19,9 @@ def picture_spec(spec,name):
   # plt.show()
   plt.close()
 
-def picture_wave(wave_t,name,framerate):
-  nframes=np.shape(wave_t)[0]
+
+def picture_wave(wave_t, name, framerate):
+  nframes = np.shape(wave_t)[0]
   _time = np.arange(0, nframes)*(1.0 / framerate)
   plt.plot(_time, wave_t)
   plt.xlabel("Time(s)")
@@ -32,11 +33,12 @@ def picture_wave(wave_t,name,framerate):
   print("write pic "+name)
   plt.close()
 
+
 def magnitude_spectrum_librosa_stft(signal, NFFT, overlap):
-  signal=np.array(signal,dtype=np.float)
+  signal = np.array(signal, dtype=np.float)
   tmp = librosa.core.stft(signal,
                           n_fft=NFFT,
-                          hop_length=overlap,
+                          hop_length=NFFT-overlap,
                           window=scipy.signal.windows.hann)
   tmp = np.absolute(tmp)
   return tmp.T
@@ -46,10 +48,10 @@ def phase_spectrum_librosa_stft(signal, NFFT, overlap):
   '''
   return theta
   '''
-  signal=np.array(signal,dtype=np.float)
+  signal = np.array(signal, dtype=np.float)
   tmp = librosa.core.stft(signal,
                           n_fft=NFFT,
-                          hop_length=overlap,
+                          hop_length=NFFT-overlap,
                           window=scipy.signal.windows.hann)
   tmp = np.angle(tmp)
   return tmp.T
@@ -58,9 +60,34 @@ def phase_spectrum_librosa_stft(signal, NFFT, overlap):
 def librosa_istft(signal_complex, NFFT, overlap):
   tmp = librosa.core.istft(signal_complex,
                            win_length=NFFT,
-                           hop_length=overlap,
+                           hop_length=NFFT-overlap,
                            window=scipy.signal.windows.hann)
   return tmp
+
+
+def griffin_lim(spec, NFFT, overlap, max_iter):
+  y = np.random.random(np.shape(librosa.core.istft(spec,
+                                                   win_length=NFFT,
+                                                   hop_length=NFFT-overlap,
+                                                   window=scipy.signal.windows.hann)))*32767
+
+  for i in range(max_iter-1):
+    stft_matrix = librosa.core.stft(y,
+                                    n_fft=NFFT,
+                                    hop_length=NFFT-overlap,
+                                    window=scipy.signal.windows.hann)
+    stft_matrix = spec * stft_matrix / np.abs(stft_matrix)
+    y = librosa.core.istft(stft_matrix,
+                           win_length=NFFT,
+                           hop_length=NFFT-overlap,
+                           window=scipy.signal.windows.hann)
+
+  stft_matrix = librosa.core.stft(y,
+                                  n_fft=NFFT,
+                                  hop_length=NFFT-overlap,
+                                  window=scipy.signal.windows.hann)
+  stft_matrix = spec * stft_matrix / np.abs(stft_matrix)
+  return stft_matrix.T
 
 
 '''
